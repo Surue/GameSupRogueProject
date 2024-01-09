@@ -10,7 +10,7 @@ public class ChunkGenerator : MonoBehaviour
     private int _sizeX = 5;
     private int _sizeY = 5;
 
-    struct Cell
+    private struct Cell
     {
         public int x;
         public int y;
@@ -21,14 +21,14 @@ public class ChunkGenerator : MonoBehaviour
 
     private Cell[,] _cells;
 
-    enum RuleState
+    private enum RuleState
     {
         ALWAYS_TRUE,
         ALWAYS_FALSE,
         DONT_CARE
     }
 
-    struct Rule
+    private struct Rule
     {
         public RuleState up;
         public RuleState down;
@@ -81,9 +81,8 @@ public class ChunkGenerator : MonoBehaviour
         GenerateChunkChild(_cells[0, 0]);
     }
 
-    void GenerateChunkChild(Cell cell)
+    private void GenerateChunkChild(Cell cell)
     {
-
         if (cell.chunk.down && _cells[cell.x, cell.y - 1].chunk == null) {
             Rule rule = GetRulesForNextChunk(cell.x, cell.y - 1);
 

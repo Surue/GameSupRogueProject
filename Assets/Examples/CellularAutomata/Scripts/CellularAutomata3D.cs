@@ -1,37 +1,36 @@
 ﻿using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class CellularAutomata3D : MonoBehaviour
 {
 
-    [Range(0, 1000)][SerializeField] int size = 10;
-    [Range(0, 100)][SerializeField] int iteration = 10;
+    [Range(0, 1000)][SerializeField] private int _size = 10;
+    [Range(0, 100)][SerializeField] private int _iteration = 10;
 
-    [SerializeField] GameObject cubePrefab;
+    [SerializeField] private GameObject _cubePrefab;
 
-    struct Cell
+    private struct Cell
     {
         public bool isAlive;
         public bool futureState;
     }
 
-    Cell[,,] cells;
+    private Cell[,,] _cells;
 
-    bool isRunning = false;
+    private bool _isRunning = false;
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         //Create array
-        cells = new Cell[size, size, size];
+        _cells = new Cell[_size, _size, _size];
 
         //Fill array by random
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                for (int z = 0; z < size; z++) {
+        for (int x = 0; x < _size; x++) {
+            for (int y = 0; y < _size; y++) {
+                for (int z = 0; z < _size; z++) {
                     float f = Random.Range(0f, 1f);
-                    cells[x, y, z].isAlive = f > 0.5f;
+                    _cells[x, y, z].isAlive = f > 0.5f;
                 }
             }
         }
@@ -39,16 +38,16 @@ public class CellularAutomata3D : MonoBehaviour
         StartCoroutine(WorldGeneration());
     }
 
-    IEnumerator WorldGeneration()
+    private IEnumerator WorldGeneration()
     {
-        isRunning = true;
+        _isRunning = true;
         //Cellular automata
-        for (int i = 0; i < iteration; i++) {
+        for (int i = 0; i < _iteration; i++) {
             Cellular();
             yield return null;
         }
 
-        isRunning = false;
+        _isRunning = false;
 
         //Cut cube
         CutCube();
@@ -57,72 +56,72 @@ public class CellularAutomata3D : MonoBehaviour
         GenerateCube();
     }
 
-    void Cellular()
+    private void Cellular()
     {
         BoundsInt bounds = new BoundsInt(-1, -1, -1, 3, 3, 3);
 
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                for (int z = 0; z < size; z++) {
+        for (int x = 0; x < _size; x++) {
+            for (int y = 0; y < _size; y++) {
+                for (int z = 0; z < _size; z++) {
 
                     int neighboursAlive = 0;
 
                     //Check neighbours
                     foreach (Vector3Int b in bounds.allPositionsWithin) {
                         if (b.x == 0 && b.y == 0 && b.z == 0) continue;
-                        if (x + b.x < 0 || x + b.x >= size) continue;
-                        if (y + b.y < 0 || y + b.y >= size) continue;
-                        if (z + b.z < 0 || z + b.z >= size) continue;
+                        if (x + b.x < 0 || x + b.x >= _size) continue;
+                        if (y + b.y < 0 || y + b.y >= _size) continue;
+                        if (z + b.z < 0 || z + b.z >= _size) continue;
 
-                        if (cells[x + b.x, y + b.y, z + b.z].isAlive) {
+                        if (_cells[x + b.x, y + b.y, z + b.z].isAlive) {
                             neighboursAlive++;
                         }
                     }
 
                     //Apply rules
-                    if (cells[x, y, z].isAlive && (neighboursAlive >= 13 && neighboursAlive <= 26)) {
-                        cells[x, y, z].futureState = true;
-                    } else if (!cells[x, y, z].isAlive &&
+                    if (_cells[x, y, z].isAlive && (neighboursAlive >= 13 && neighboursAlive <= 26)) {
+                        _cells[x, y, z].futureState = true;
+                    } else if (!_cells[x, y, z].isAlive &&
                                ((neighboursAlive >= 13 && neighboursAlive <= 14) ||
                                 (neighboursAlive >= 17 && neighboursAlive <= 19))) {
-                        cells[x, y, z].futureState = true;
+                        _cells[x, y, z].futureState = true;
                     } else {
-                        cells[x, y, z].futureState = false;
+                        _cells[x, y, z].futureState = false;
                     }
                 }
             }
         }
 
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                for (int z = 0; z < size; z++) {
-                    cells[x, y, z].isAlive = cells[x, y, z].futureState;
+        for (int x = 0; x < _size; x++) {
+            for (int y = 0; y < _size; y++) {
+                for (int z = 0; z < _size; z++) {
+                    _cells[x, y, z].isAlive = _cells[x, y, z].futureState;
                 }
             }
         }
     }
 
-    void CutCube()
+    private void CutCube()
     {
-        for(int x = 0; x < size; x++) {
-            for (int y = size - 10; y < size; y++) {
-                for (int z = 0; z < size; z++) {
-                    cells[x, y, z].isAlive = true;
+        for(int x = 0; x < _size; x++) {
+            for (int y = _size - 10; y < _size; y++) {
+                for (int z = 0; z < _size; z++) {
+                    _cells[x, y, z].isAlive = true;
                 }
             }
         }
     }
 
-    void GenerateCube()
+    private void GenerateCube()
     {
-        for(int x = 0;x < size;x++) {
-            for(int y = 0;y < size;y++) {
-                for(int z = 0;z < size;z++) {
-                    if (!cells[x, y, z].isAlive) {
+        for(int x = 0;x < _size;x++) {
+            for(int y = 0;y < _size;y++) {
+                for(int z = 0;z < _size;z++) {
+                    if (!_cells[x, y, z].isAlive) {
                         continue;
                     }
                     
-                    GameObject instance = Instantiate(cubePrefab);
+                    GameObject instance = Instantiate(_cubePrefab);
 
                     instance.transform.position = new Vector3(x, y, z);
                 }

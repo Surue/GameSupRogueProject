@@ -1,6 +1,4 @@
-﻿using System.Collections;
-using System.Collections.Generic;
-using UnityEngine;
+﻿using UnityEngine;
 
 public class Chunck : MonoBehaviour
 {
@@ -10,19 +8,7 @@ public class Chunck : MonoBehaviour
     public bool left;
     public bool right;
 
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    void OnDrawGizmos()
+    private void OnDrawGizmos()
     {
         if (up) {
             Gizmos.DrawWireSphere(new Vector3(transform.position.x, transform.position.y + 2.5f), 1);

@@ -1,5 +1,4 @@
-﻿using System;
-using System.Collections;
+﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using Random = UnityEngine.Random;
@@ -7,65 +6,68 @@ using Random = UnityEngine.Random;
 public class GameOfLifeControls : MonoBehaviour
 {
     [Header("Grid")]
-    [Range(0, 100)][SerializeField] int sizeX = 50;
-    [Range(0, 100)][SerializeField] int sizeY = 50;
+    [Range(0, 100)][SerializeField]
+    private int _sizeX = 50; [Range(0, 100)][SerializeField] private int _sizeY = 50;
 
     [Header("Cells")]
-    [Range(0, 1)] [SerializeField] float probabilityIsAlive = 0.5f;
+    [Range(0, 1)] [SerializeField]
+    private float _probabilityIsAlive = 0.5f;
 
     [Header("Demo")] 
-    [Range(0, 10)] [SerializeField] float stepTime = 0;
+    [Range(0, 10)] [SerializeField]
+    private float _stepTime = 0;
 
-    [SerializeField] bool s0 = false;
-    [SerializeField] bool s1 = false;
-    [SerializeField] bool s2 = false;
-    [SerializeField] bool s3 = false;
-    [SerializeField] bool s4 = false;
-    [SerializeField] bool s5 = false;
-    [SerializeField] bool s6 = false;
-    [SerializeField] bool s7 = false;
-    [SerializeField] bool s8 = false;
+    [SerializeField] private bool _s0 = false;
+    [SerializeField] private bool _s1 = false;
+    [SerializeField] private bool _s2 = false;
+    [SerializeField] private bool _s3 = false;
+    [SerializeField] private bool _s4 = false;
+    [SerializeField] private bool _s5 = false;
+    [SerializeField] private bool _s6 = false;
+    [SerializeField] private bool _s7 = false;
+    [SerializeField] private bool _s8 = false;
 
-    [SerializeField] bool b0 = false;
-    [SerializeField] bool b1 = false;
-    [SerializeField] bool b2 = false;
-    [SerializeField] bool b3 = false;
-    [SerializeField] bool b4 = false;
-    [SerializeField] bool b5 = false;
-    [SerializeField] bool b6 = false;
-    [SerializeField] bool b7 = false;
-    [SerializeField] bool b8 = false;
+    [SerializeField] private bool _b0 = false;
+    [SerializeField] private bool _b1 = false;
+    [SerializeField] private bool _b2 = false;
+    [SerializeField] private bool _b3 = false;
+    [SerializeField] private bool _b4 = false;
+    [SerializeField] private bool _b5 = false;
+    [SerializeField] private bool _b6 = false;
+    [SerializeField] private bool _b7 = false;
+    [SerializeField] private bool _b8 = false;
 
-    bool isRunning = false;
+    private bool _isRunning = false;
 
     #region struct
-    struct Cell
+
+    private struct Cell
     {
         public bool currentState;
         public bool futureState;
     }
 
-    Cell[,] cells;
+    private Cell[,] _cells;
     #endregion
 
-    List<int> ruleS;
-    List<int> ruleB;
+    private List<int> _ruleS;
+    private List<int> _ruleB;
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
-        cells = new Cell[sizeX, sizeY];
-        for (int x = 0; x < sizeX; x++) {
-            for (int y = 0; y < sizeY; y++) {
-                cells[x, y] = new Cell();
+        _cells = new Cell[_sizeX, _sizeY];
+        for (int x = 0; x < _sizeX; x++) {
+            for (int y = 0; y < _sizeY; y++) {
+                _cells[x, y] = new Cell();
 
                 float isAlive = Random.Range(0f, 1f);
 
-                cells[x, y].currentState = isAlive < probabilityIsAlive;
+                _cells[x, y].currentState = isAlive < _probabilityIsAlive;
             }
         }
 
-        isRunning = true;
+        _isRunning = true;
 
         SetRules();
 
@@ -74,116 +76,117 @@ public class GameOfLifeControls : MonoBehaviour
 
     // Update is called once per frame
     public bool IsRunning() {
-        return isRunning;
+        return _isRunning;
     }
-    IEnumerator Simulate()
+
+    private IEnumerator Simulate()
     {
-        yield return new WaitForSeconds(stepTime);
+        yield return new WaitForSeconds(_stepTime);
         
         BoundsInt bounds = new BoundsInt(-1, -1, 0, 3, 3, 1);
         while (true) {
 
-            for (int x = 0; x < sizeX; x++) {
-                for (int y = 0; y < sizeY; y++) {
+            for (int x = 0; x < _sizeX; x++) {
+                for (int y = 0; y < _sizeY; y++) {
                     int aliveNeighbours = 0;
                     foreach (Vector2Int b in bounds.allPositionsWithin) {
                         if (b.x == 0 && b.y == 0) continue;
-                        if (x + b.x < 0 || x + b.x >= sizeX || y + b.y < 0 || y + b.y >= sizeY) continue;
+                        if (x + b.x < 0 || x + b.x >= _sizeX || y + b.y < 0 || y + b.y >= _sizeY) continue;
 
-                        if (cells[x + b.x, y + b.y].currentState) {
+                        if (_cells[x + b.x, y + b.y].currentState) {
                             aliveNeighbours++;
                         }
                     }
 
-                    if (cells[x, y].currentState && ruleS.Contains(aliveNeighbours)) {
-                        cells[x, y].futureState = true;
-                    } else if (!cells[x, y].currentState && ruleB.Contains(aliveNeighbours)) {
-                        cells[x, y].futureState = true;
+                    if (_cells[x, y].currentState && _ruleS.Contains(aliveNeighbours)) {
+                        _cells[x, y].futureState = true;
+                    } else if (!_cells[x, y].currentState && _ruleB.Contains(aliveNeighbours)) {
+                        _cells[x, y].futureState = true;
                     } else {
-                        cells[x, y].futureState = false;
+                        _cells[x, y].futureState = false;
                     }
                 }
             }
 
-            for (int x = 0; x < sizeX; x++) {
-                for (int y = 0; y < sizeY; y++) {
-                    cells[x, y].currentState = cells[x, y].futureState;
+            for (int x = 0; x < _sizeX; x++) {
+                for (int y = 0; y < _sizeY; y++) {
+                    _cells[x, y].currentState = _cells[x, y].futureState;
                 }
             }
 
-            yield return new WaitForSeconds(stepTime);
+            yield return new WaitForSeconds(_stepTime);
         }
     }
 
-    void SetRules()
+    private void SetRules()
     {
-        ruleB = new List<int>();
-        ruleS = new List<int>();
+        _ruleB = new List<int>();
+        _ruleS = new List<int>();
 
-        if (b0) {
-            ruleB.Add(0);
+        if (_b0) {
+            _ruleB.Add(0);
         }
-        if(b1) {
-            ruleB.Add(1);
+        if(_b1) {
+            _ruleB.Add(1);
         }
-        if(b2) {
-            ruleB.Add(2);
+        if(_b2) {
+            _ruleB.Add(2);
         }
-        if(b3) {
-            ruleB.Add(3);
+        if(_b3) {
+            _ruleB.Add(3);
         }
-        if(b4) {
-            ruleB.Add(4);
+        if(_b4) {
+            _ruleB.Add(4);
         }
-        if(b5) {
-            ruleB.Add(5);
+        if(_b5) {
+            _ruleB.Add(5);
         }
-        if(b6) {
-            ruleB.Add(6);
+        if(_b6) {
+            _ruleB.Add(6);
         }
-        if(b7) {
-            ruleB.Add(7);
+        if(_b7) {
+            _ruleB.Add(7);
         }
-        if(b8) {
-            ruleB.Add(8);
+        if(_b8) {
+            _ruleB.Add(8);
         }
 
-        if(s0) {
-            ruleS.Add(0);
+        if(_s0) {
+            _ruleS.Add(0);
         }
-        if(s1) {
-            ruleS.Add(1);
+        if(_s1) {
+            _ruleS.Add(1);
         }
-        if(s2) {
-            ruleS.Add(2);
+        if(_s2) {
+            _ruleS.Add(2);
         }
-        if(s3) {
-            ruleS.Add(3);
+        if(_s3) {
+            _ruleS.Add(3);
         }
-        if(s4) {
-            ruleS.Add(4);
+        if(_s4) {
+            _ruleS.Add(4);
         }
-        if(s5) {
-            ruleS.Add(5);
+        if(_s5) {
+            _ruleS.Add(5);
         }
-        if(s6) {
-            ruleS.Add(6);
+        if(_s6) {
+            _ruleS.Add(6);
         }
-        if(s7) {
-            ruleS.Add(7);
+        if(_s7) {
+            _ruleS.Add(7);
         }
-        if(s8) {
-            ruleS.Add(8);
+        if(_s8) {
+            _ruleS.Add(8);
         }
     }
 
-    void OnDrawGizmos()
+    private void OnDrawGizmos()
     {
-        if (!isRunning) return;
+        if (!_isRunning) return;
 
-        for(int x = 0;x < sizeX;x++) {
-            for(int y = 0;y < sizeY;y++) {
-                if (cells[x, y].currentState) {
+        for(int x = 0;x < _sizeX;x++) {
+            for(int y = 0;y < _sizeY;y++) {
+                if (_cells[x, y].currentState) {
                     DrawAliveCell(new Vector2(x, y));
                 } else {
                     DrawDeadCell(new Vector2(x, y));
@@ -192,13 +195,13 @@ public class GameOfLifeControls : MonoBehaviour
         }
     }
 
-    void DrawAliveCell(Vector2 pos)
+    private void DrawAliveCell(Vector2 pos)
     {
         Gizmos.color = Color.white;
         Gizmos.DrawCube(new Vector3(pos.x, pos.y, 0), Vector2.one);
     }
 
-    void DrawDeadCell(Vector2 pos)
+    private void DrawDeadCell(Vector2 pos)
     {
         Gizmos.color = Color.black;
         Gizmos.DrawCube(new Vector3(pos.x, pos.y, 0), Vector2.one);

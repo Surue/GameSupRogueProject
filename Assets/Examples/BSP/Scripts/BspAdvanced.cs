@@ -7,20 +7,20 @@ using UnityEditor;
 public class BspAdvanced : MonoBehaviour
 {
     //Option 
-    [Range(0, 50)] [SerializeField] float sizeX;
-    [Range(0, 50)] [SerializeField] float sizeY;
+    [Range(0, 50)] [SerializeField] private float _sizeX;
+    [Range(0, 50)] [SerializeField] private float _sizeY;
 
-    [Range(0, 50)] [SerializeField] float minSizeX;
-    [Range(0, 50)] [SerializeField] float minSizeY;
+    [Range(0, 50)] [SerializeField] private float _minSizeX;
+    [Range(0, 50)] [SerializeField] private float _minSizeY;
 
-    [Range(0, 50)] [SerializeField] float maxSizeX;
-    [Range(0, 50)] [SerializeField] float maxSizeY;
+    [Range(0, 50)] [SerializeField] private float _maxSizeX;
+    [Range(0, 50)] [SerializeField] private float _maxSizeY;
 
-    [Range(0, 1)] [SerializeField] float probabilityToCut;
-    [Range(0, 1)] [SerializeField] float probabilityToByXOrByY;
+    [Range(0, 1)] [SerializeField] private float _probabilityToCut;
+    [Range(0, 1)] [SerializeField] private float _probabilityToByXOrByY;
 
     //Struct
-    struct Room
+    private struct Room
     {
         public Vector2 center;
         public Vector2 extends;
@@ -28,53 +28,53 @@ public class BspAdvanced : MonoBehaviour
         public List<Room> children;
     }
 
-    Room _RootRoom;
+    private Room _rootRoom;
 
 
     public void Generate()
     {
-        _RootRoom.extends = new Vector2(sizeX * 2, sizeY * 2);
-        _RootRoom.center = Vector2.zero;
-        _RootRoom.children = new List<Room>();
+        _rootRoom.extends = new Vector2(_sizeX * 2, _sizeY * 2);
+        _rootRoom.center = Vector2.zero;
+        _rootRoom.children = new List<Room>();
 
-        _RootRoom.children.AddRange(CheckDivision(_RootRoom));
+        _rootRoom.children.AddRange(CheckDivision(_rootRoom));
     }
 
     public void Clear() {
-        _RootRoom = new Room();
+        _rootRoom = new Room();
     }
 
-    List<Room> CheckDivision(Room room)
+    private List<Room> CheckDivision(Room room)
     {
         List<Room> childrenList = new List<Room>();
 
         //Divide by max size X
-        if (room.extends.x > maxSizeX || room.extends.y > maxSizeY) {
-            if (room.extends.x > maxSizeX && room.extends.y > maxSizeY) {
+        if (room.extends.x > _maxSizeX || room.extends.y > _maxSizeY) {
+            if (room.extends.x > _maxSizeX && room.extends.y > _maxSizeY) {
                 childrenList.AddRange(DivideByProbability(room));
-            }else if (room.extends.x > maxSizeX) {
+            }else if (room.extends.x > _maxSizeX) {
                 childrenList.AddRange(DivideByX(room));
             } else {
                 childrenList.AddRange(DivideByY(room));
             }
         }
-        else if (room.extends.x > minSizeX * 2 || room.extends.y > minSizeY * 2) { //Divide by probability
-            if(room.extends.x > minSizeX * 2 && room.extends.y > minSizeY * 2) {
+        else if (room.extends.x > _minSizeX * 2 || room.extends.y > _minSizeY * 2) { //Divide by probability
+            if(room.extends.x > _minSizeX * 2 && room.extends.y > _minSizeY * 2) {
                 float probability = Random.Range(0f, 1f);
 
-                if (probability > probabilityToCut) {
+                if (probability > _probabilityToCut) {
                     childrenList.AddRange(DivideByProbability(room));
                 }
-            } else if(room.extends.x > minSizeX * 2) {
+            } else if(room.extends.x > _minSizeX * 2) {
                 float probability = Random.Range(0f, 1f);
 
-                if (probability > probabilityToCut) {
+                if (probability > _probabilityToCut) {
                     childrenList.AddRange(DivideByX(room));
                 }
             } else {
                 float probability = Random.Range(0f, 1f);
 
-                if(probability > probabilityToCut) {
+                if(probability > _probabilityToCut) {
                     childrenList.AddRange(DivideByY(room));
                 }
             }
@@ -83,14 +83,14 @@ public class BspAdvanced : MonoBehaviour
         return childrenList;
     }
 
-    List<Room> DivideByProbability(Room room)
+    private List<Room> DivideByProbability(Room room)
     {
         float probability = Random.Range(0f, 1f);
 
-        return probability > probabilityToByXOrByY ? DivideByX(room) : DivideByY(room);
+        return probability > _probabilityToByXOrByY ? DivideByX(room) : DivideByY(room);
     }
 
-    List<Room> DivideByX(Room room)
+    private List<Room> DivideByX(Room room)
     {
         List<Room> rooms = new List<Room>();
 
@@ -98,7 +98,7 @@ public class BspAdvanced : MonoBehaviour
         Room roomRight;
 
         //Value for cut
-        float posX = Random.Range(0 + minSizeX, room.extends.x - minSizeX * 2);
+        float posX = Random.Range(0 + _minSizeX, room.extends.x - _minSizeX * 2);
 
         //Extends
         roomRight.extends = new Vector2(posX, room.extends.y);
@@ -122,7 +122,7 @@ public class BspAdvanced : MonoBehaviour
         return rooms;
     }
 
-    List<Room> DivideByY(Room room)
+    private List<Room> DivideByY(Room room)
     {
         List<Room> rooms = new List<Room>();
 
@@ -130,7 +130,7 @@ public class BspAdvanced : MonoBehaviour
         Room roomDown;
 
         //Value for cut
-        float posY = Random.Range(0 + minSizeY, room.extends.y - (minSizeY * 2));
+        float posY = Random.Range(0 + _minSizeY, room.extends.y - (_minSizeY * 2));
 
         //Extends
         roomDown.extends = new Vector2(room.extends.x, posY);
@@ -154,12 +154,12 @@ public class BspAdvanced : MonoBehaviour
         return rooms;
     }
 
-    void OnDrawGizmos()
+    private void OnDrawGizmos()
     {
-        DrawRoom(_RootRoom);
+        DrawRoom(_rootRoom);
     }
 
-    static void DrawRoom(Room room)
+    private static void DrawRoom(Room room)
     {
         Gizmos.DrawWireCube(room.center, room.extends);
 

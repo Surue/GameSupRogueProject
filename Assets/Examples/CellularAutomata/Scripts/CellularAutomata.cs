@@ -1,33 +1,32 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
-using System.Net;
 using UnityEngine;
 
 public class CellularAutomata : MonoBehaviour
 {
-    [Range(0, 1000)][SerializeField] int size = 10;
-    [Range(0, 100)][SerializeField] int iteration = 10;
+    [Range(0, 1000)][SerializeField] private int _size = 10;
+    [Range(0, 100)][SerializeField] private int _iteration = 10;
 
-    struct Cell {
+    private struct Cell {
         public bool isAlive;
         public bool futureState;
 
         public int region;
     }
 
-    Cell[,] cells;
+    private Cell[,] _cells;
 
-    bool isRunning = false;
+    private bool _isRunning = false;
 
-    int currentRegion = 0;
+    private int _currentRegion = 0;
 
-    List<Color> colors;
+    private List<Color> _colors;
 
     // Start is called before the first frame update
-    void Start() {
-        cells = new Cell[size, size];
+    private void Start() {
+        _cells = new Cell[_size, _size];
 
-        colors = new List<Color> {
+        _colors = new List<Color> {
             Color.white,
             Color.blue,
             Color.cyan,
@@ -38,63 +37,63 @@ public class CellularAutomata : MonoBehaviour
             Color.yellow
         };
         
-        isRunning = true;
+        _isRunning = true;
 
         Generate();
     }
 
-    void Generate()
+    private void Generate()
     {
        Init();
 
        StartCoroutine(Cellular());
     }
 
-    void Init()
+    private void Init()
     {
-        for(int x = 0;x < size;x++) {
-            for(int y = 0;y < size;y++) {
-                cells[x, y] = new Cell();
+        for(int x = 0;x < _size;x++) {
+            for(int y = 0;y < _size;y++) {
+                _cells[x, y] = new Cell();
 
-                cells[x, y].region = -1;
+                _cells[x, y].region = -1;
 
                 float isAlive = Random.Range(0f, 1f);
 
-                cells[x, y].isAlive = isAlive < 0.5f;
+                _cells[x, y].isAlive = isAlive < 0.5f;
             }
         }
     }
 
-    IEnumerator Cellular()
+    private IEnumerator Cellular()
     {
-        for (int i = 0; i < iteration; i++) {
+        for (int i = 0; i < _iteration; i++) {
             BoundsInt bounds = new BoundsInt(-1, -1, 0, 3, 3, 1);
 
-            for(int x = 0;x < size;x++) {
-                for(int y = 0;y < size;y++) {
+            for(int x = 0;x < _size;x++) {
+                for(int y = 0;y < _size;y++) {
                     int aliveNeighbours = 0;
                     foreach(Vector2Int b in bounds.allPositionsWithin) {
                         if(b.x == 0 && b.y == 0) continue;
-                        if(x + b.x < 0 || x + b.x >= size || y + b.y < 0 || y + b.y >= size) continue;
+                        if(x + b.x < 0 || x + b.x >= _size || y + b.y < 0 || y + b.y >= _size) continue;
 
-                        if(cells[x + b.x, y + b.y].isAlive) {
+                        if(_cells[x + b.x, y + b.y].isAlive) {
                             aliveNeighbours++;
                         }
                     }
 
-                    if(cells[x, y].isAlive && (aliveNeighbours == 1 || aliveNeighbours >= 4)) {
-                        cells[x, y].futureState = true;
-                    } else if(!cells[x, y].isAlive && aliveNeighbours >= 5) {
-                        cells[x, y].futureState = true;
+                    if(_cells[x, y].isAlive && (aliveNeighbours == 1 || aliveNeighbours >= 4)) {
+                        _cells[x, y].futureState = true;
+                    } else if(!_cells[x, y].isAlive && aliveNeighbours >= 5) {
+                        _cells[x, y].futureState = true;
                     } else {
-                        cells[x, y].futureState = false;
+                        _cells[x, y].futureState = false;
                     }
                 }
             }
 
-            for(int x = 0;x < size;x++) {
-                for(int y = 0;y < size;y++) {
-                    cells[x, y].isAlive= cells[x, y].futureState;
+            for(int x = 0;x < _size;x++) {
+                for(int y = 0;y < _size;y++) {
+                    _cells[x, y].isAlive= _cells[x, y].futureState;
                 }
             }
 
@@ -104,14 +103,14 @@ public class CellularAutomata : MonoBehaviour
         StartCoroutine(GetRoom());
     }
 
-    IEnumerator GetRoom()
+    private IEnumerator GetRoom()
     {
         BoundsInt bounds = new BoundsInt(-1, -1, 0, 3, 3, 1);
 
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                if (!cells[x, y].isAlive) continue;
-                if (cells[x, y].region != -1) continue;
+        for (int x = 0; x < _size; x++) {
+            for (int y = 0; y < _size; y++) {
+                if (!_cells[x, y].isAlive) continue;
+                if (_cells[x, y].region != -1) continue;
 
                 List<Vector2Int> openList = new List<Vector2Int>();
                 List<Vector2Int> closedList = new List<Vector2Int>();
@@ -119,7 +118,7 @@ public class CellularAutomata : MonoBehaviour
                 openList.Add(new Vector2Int(x, y));
                 
                 while(openList.Count > 0) {
-                    cells[openList[0].x, openList[0].y].region = currentRegion;
+                    _cells[openList[0].x, openList[0].y].region = _currentRegion;
                     closedList.Add(openList[0]);
 
                     foreach(Vector2Int b in bounds.allPositionsWithin) {
@@ -132,13 +131,13 @@ public class CellularAutomata : MonoBehaviour
                         Vector2Int pos = new Vector2Int(openList[0].x + b.x, openList[0].y + b.y);
 
                         //Check inside bounds
-                        if(pos.x < 0 || pos.x >= size || pos.y < 0 || pos.y >= size) continue;
+                        if(pos.x < 0 || pos.x >= _size || pos.y < 0 || pos.y >= _size) continue;
 
                         //Check is alive
-                        if(!cells[pos.x, pos.y].isAlive) continue;
+                        if(!_cells[pos.x, pos.y].isAlive) continue;
                         
                         //check region not yet associated
-                        if(cells[pos.x, pos.y].region != -1) continue;
+                        if(_cells[pos.x, pos.y].region != -1) continue;
 
                         //Check if already visited
                         if (closedList.Contains(pos)) continue;
@@ -154,35 +153,38 @@ public class CellularAutomata : MonoBehaviour
                     yield return null;
                 }
 
-                currentRegion++;
+                _currentRegion++;
 
                 yield return new WaitForSeconds(0.1f);
             }
         }
     }
 
-    void OnDrawGizmos() {
-        if(!isRunning) return;
+    private void OnDrawGizmos() {
+        if(!_isRunning) return;
 
-        for(int x = 0;x < size;x++) {
-            for(int y = 0;y < size;y++) {
-                if(cells[x, y].isAlive) {
+        for(int x = 0;x < _size;x++) {
+            for(int y = 0;y < _size;y++) {
+                if(_cells[x, y].isAlive) 
+                {
                     DrawAliveCell(new Vector2Int(x, y));
-                } else {
+                } 
+                else 
+                {
                     DrawDeadCell(new Vector2(x, y));
                 }
             }
         }
     }
 
-    void DrawAliveCell(Vector2Int pos)
+    private void DrawAliveCell(Vector2Int pos)
     {
-        Gizmos.color = cells[pos.x, pos.y].region < 0 ? Color.clear : colors[cells[pos.x, pos.y].region % colors.Count];
+        Gizmos.color = _cells[pos.x, pos.y].region < 0 ? Color.clear : _colors[_cells[pos.x, pos.y].region % _colors.Count];
 
         Gizmos.DrawCube(new Vector3(pos.x, pos.y, 0), Vector2.one);
     }
 
-    void DrawDeadCell(Vector2 pos) {
+    private void DrawDeadCell(Vector2 pos) {
         Gizmos.color = Color.black;
         Gizmos.DrawCube(new Vector3(pos.x, pos.y, 0), Vector2.one);
     }

@@ -1,16 +1,15 @@
-﻿using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
-public class CellularAutomata3D_v2 : MonoBehaviour {
+public class CellularAutomata3DV2 : MonoBehaviour {
 
     [Header("Settings")] 
-    [Range(0, 1000)][SerializeField] int size = 10;
-    [Range(0, 100)][SerializeField] int iteration = 10;
+    [Range(0, 1000)][SerializeField] private int _size = 10;
+    [Range(0, 100)][SerializeField] private int _iteration = 10;
 
-    [SerializeField] GameObject cubePrefab;
-    
-    struct Cell {
+    [SerializeField] private GameObject _cubePrefab;
+
+    private struct Cell {
         public int aliveNeighbors;
         public bool isAlive;
         public bool futureState;
@@ -18,13 +17,13 @@ public class CellularAutomata3D_v2 : MonoBehaviour {
         public GameObject cube;
     }
 
-    Cell[] cells;
+    private Cell[] _cells;
     
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
         //Setup base array
-        cells = new Cell[size * size * size];
+        _cells = new Cell[_size * _size * _size];
         
         GenerateGameObjects();
 
@@ -34,13 +33,13 @@ public class CellularAutomata3D_v2 : MonoBehaviour {
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
-        if (iteration <= 0) {
+        if (_iteration <= 0) {
             return;
         }
 
-        foreach (Cell cell in cells) {
+        foreach (Cell cell in _cells) {
             if (cell.isAlive && cell.aliveNeighbors < 26) {
                 cell.cube.gameObject.SetActive(true);
             }
@@ -50,15 +49,15 @@ public class CellularAutomata3D_v2 : MonoBehaviour {
         }
 
         CellularStep();
-        iteration--;
+        _iteration--;
     }
 
-    void GenerateGameObjects() {
+    private void GenerateGameObjects() {
         int index = 0;
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                for (int z = 0; z < size; z++) {
-                    cells[index] = new Cell {cube = Instantiate(cubePrefab, new Vector3(x, y, z), Quaternion.identity)};
+        for (int x = 0; x < _size; x++) {
+            for (int y = 0; y < _size; y++) {
+                for (int z = 0; z < _size; z++) {
+                    _cells[index] = new Cell {cube = Instantiate(_cubePrefab, new Vector3(x, y, z), Quaternion.identity)};
 
                     index++;
                 }
@@ -66,79 +65,79 @@ public class CellularAutomata3D_v2 : MonoBehaviour {
         }
     }
 
-    void SetNeighbors() {
+    private void SetNeighbors() {
         BoundsInt bounds = new BoundsInt(-1, -1, -1, 3, 3, 3);
         int index = 0;
-        for (int x = 0; x < size; x++) {
-            for (int y = 0; y < size; y++) {
-                for (int z = 0; z < size; z++) {
+        for (int x = 0; x < _size; x++) {
+            for (int y = 0; y < _size; y++) {
+                for (int z = 0; z < _size; z++) {
                     List<int> tmpNeighbors = new List<int>();
                     
                     foreach (Vector3Int b in bounds.allPositionsWithin) {
                         if (b.x == 0 && b.y == 0 && b.z == 0) continue;
-                        if (x + b.x < 0 || x + b.x >= size) continue;
-                        if (y + b.y < 0 || y + b.y >= size) continue;
-                        if (z + b.z < 0 || z + b.z >= size) continue;
+                        if (x + b.x < 0 || x + b.x >= _size) continue;
+                        if (y + b.y < 0 || y + b.y >= _size) continue;
+                        if (z + b.z < 0 || z + b.z >= _size) continue;
                             
                         tmpNeighbors.Add(CoordToLinearIndex(new Vector3Int(x + b.x, y + b.y, z + b.z)));
                     }
                     
-                    cells[index].neighborsIndex = new int[tmpNeighbors.Count];
-                    cells[index].neighborsIndex = tmpNeighbors.ToArray();
+                    _cells[index].neighborsIndex = new int[tmpNeighbors.Count];
+                    _cells[index].neighborsIndex = tmpNeighbors.ToArray();
                     index++;
                 }
             }
         }
     }
 
-    void RandomBirth() {
-        for (int index = 0; index < cells.Length; index++) {
+    private void RandomBirth() {
+        for (int index = 0; index < _cells.Length; index++) {
             int i = Random.Range(0, 2);
 
             if (i == 0) {
-                cells[index].isAlive = true;
-                foreach (int t in cells[index].neighborsIndex) {
-                    cells[t].aliveNeighbors++;
+                _cells[index].isAlive = true;
+                foreach (int t in _cells[index].neighborsIndex) {
+                    _cells[t].aliveNeighbors++;
                 }
             }
             else {
-                cells[index].isAlive = false;
+                _cells[index].isAlive = false;
             }
         }
     }
 
-    void CellularStep() {
-        for (int i = 0; i < cells.Length; i++) {
+    private void CellularStep() {
+        for (int i = 0; i < _cells.Length; i++) {
             //Apply rules
-            if (cells[i].isAlive && (cells[i].aliveNeighbors >= 13 && cells[i].aliveNeighbors <= 26)) {
-                cells[i].futureState = true;
-            } else if (!cells[i].isAlive &&
-                       ((cells[i].aliveNeighbors >= 13 && cells[i].aliveNeighbors <= 14) ||
-                        (cells[i].aliveNeighbors >= 17 && cells[i].aliveNeighbors <= 19))) {
-                cells[i].futureState = true;
+            if (_cells[i].isAlive && (_cells[i].aliveNeighbors >= 13 && _cells[i].aliveNeighbors <= 26)) {
+                _cells[i].futureState = true;
+            } else if (!_cells[i].isAlive &&
+                       ((_cells[i].aliveNeighbors >= 13 && _cells[i].aliveNeighbors <= 14) ||
+                        (_cells[i].aliveNeighbors >= 17 && _cells[i].aliveNeighbors <= 19))) {
+                _cells[i].futureState = true;
             } else {
-                cells[i].futureState = false;
+                _cells[i].futureState = false;
             }
         }
 
-        for (int i = 0; i < cells.Length; i++) {
-            if (cells[i].futureState && !cells[i].isAlive) {
-                cells[i].isAlive = true;
+        for (int i = 0; i < _cells.Length; i++) {
+            if (_cells[i].futureState && !_cells[i].isAlive) {
+                _cells[i].isAlive = true;
 
-                foreach (int t in cells[i].neighborsIndex) {
-                    cells[t].aliveNeighbors++;
+                foreach (int t in _cells[i].neighborsIndex) {
+                    _cells[t].aliveNeighbors++;
                 }
-            }else if (!cells[i].futureState && cells[i].isAlive) {
-                cells[i].isAlive = false;
+            }else if (!_cells[i].futureState && _cells[i].isAlive) {
+                _cells[i].isAlive = false;
 
-                foreach (int t in cells[i].neighborsIndex) {
-                    cells[t].aliveNeighbors--;
+                foreach (int t in _cells[i].neighborsIndex) {
+                    _cells[t].aliveNeighbors--;
                 }
             }
         }
     }
 
-    int CoordToLinearIndex(Vector3Int pos) {
-        return (pos.x * size * size) + (pos.y * size) + pos.z;
+    private int CoordToLinearIndex(Vector3Int pos) {
+        return (pos.x * _size * _size) + (pos.y * _size) + pos.z;
     }
 }

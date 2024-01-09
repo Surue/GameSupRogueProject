@@ -1,87 +1,78 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
 public class GameOfLife : MonoBehaviour
 {
     [Header("Grid")]
-    [Range(0, 100)][SerializeField] int sizeX = 50;
-    [Range(0, 100)][SerializeField] int sizeY = 50;
+    [Range(0, 100)][SerializeField] private int _sizeX = 50;
+    [Range(0, 100)][SerializeField] private int _sizeY = 50;
 
     [Header("Cells")]
-    [Range(0, 1)] [SerializeField] float probabilityIsAlive = 0.5f;
+    [Range(0, 1)] [SerializeField] private float _probabilityIsAlive = 0.5f;
 
-    bool isRunning = false;
+    private bool _isRunning = false;
 
     #region struct
 
-
-    struct Cell
+    private struct Cell
     {
         public bool currentState;
         public bool futureState;
     }
 
-    Cell[,] cells;
+    private Cell[,] _cells;
     #endregion
 
     // Start is called before the first frame update
-    void Start()
+    private void Start()
     {
-        cells = new Cell[sizeX, sizeY];
-        for (int x = 0; x < sizeX; x++) {
-            for (int y = 0; y < sizeY; y++) {
-                cells[x, y] = new Cell();
+        _cells = new Cell[_sizeX, _sizeY];
+        for (int x = 0; x < _sizeX; x++) {
+            for (int y = 0; y < _sizeY; y++) {
+                _cells[x, y] = new Cell();
 
                 float isAlive = Random.Range(0f, 1f);
 
-                cells[x, y].currentState = isAlive < probabilityIsAlive;
+                _cells[x, y].currentState = isAlive < _probabilityIsAlive;
             }
         }
 
-        isRunning = true;
+        _isRunning = true;
 
         StartCoroutine(Simulate());
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
-
-    IEnumerator Simulate()
+    
+    private IEnumerator Simulate()
     {
         BoundsInt bounds = new BoundsInt(-1, -1, 0, 3, 3, 1);
         while (true) {
 
-            for (int x = 0; x < sizeX; x++) {
-                for (int y = 0; y < sizeY; y++) {
+            for (int x = 0; x < _sizeX; x++) {
+                for (int y = 0; y < _sizeY; y++) {
                     int aliveNeighbours = 0;
                     foreach (Vector2Int b in bounds.allPositionsWithin) {
                         if (b.x == 0 && b.y == 0) continue;
-                        if (x + b.x < 0 || x + b.x >= sizeX || y + b.y < 0 || y + b.y >= sizeY) continue;
+                        if (x + b.x < 0 || x + b.x >= _sizeX || y + b.y < 0 || y + b.y >= _sizeY) continue;
 
-                        if (cells[x + b.x, y + b.y].currentState) {
+                        if (_cells[x + b.x, y + b.y].currentState) {
                             aliveNeighbours++;
                         }
                     }
 
-                    if (cells[x, y].currentState && (aliveNeighbours == 2 || aliveNeighbours == 3)) {
-                        cells[x, y].futureState = true;
-                    } else if (!cells[x, y].currentState && aliveNeighbours == 3) {
-                        cells[x, y].futureState = true;
+                    if (_cells[x, y].currentState && (aliveNeighbours == 2 || aliveNeighbours == 3)) {
+                        _cells[x, y].futureState = true;
+                    } else if (!_cells[x, y].currentState && aliveNeighbours == 3) {
+                        _cells[x, y].futureState = true;
                     } else {
-                        cells[x, y].futureState = false;
+                        _cells[x, y].futureState = false;
                     }
                 }
             }
 
-            for (int x = 0; x < sizeX; x++) {
-                for (int y = 0; y < sizeY; y++) {
-                    cells[x, y].currentState = cells[x, y].futureState;
+            for (int x = 0; x < _sizeX; x++) {
+                for (int y = 0; y < _sizeY; y++) {
+                    _cells[x, y].currentState = _cells[x, y].futureState;
                 }
             }
 
@@ -89,13 +80,13 @@ public class GameOfLife : MonoBehaviour
         }
     }
 
-    void OnDrawGizmos()
+    private void OnDrawGizmos()
     {
-        if (!isRunning) return;
+        if (!_isRunning) return;
 
-        for(int x = 0;x < sizeX;x++) {
-            for(int y = 0;y < sizeY;y++) {
-                if (cells[x, y].currentState) {
+        for(int x = 0;x < _sizeX;x++) {
+            for(int y = 0;y < _sizeY;y++) {
+                if (_cells[x, y].currentState) {
                     DrawAliveCell(new Vector2(x, y));
                 } else {
                     DrawDeadCell(new Vector2(x, y));
@@ -104,13 +95,13 @@ public class GameOfLife : MonoBehaviour
         }
     }
 
-    void DrawAliveCell(Vector2 pos)
+    private void DrawAliveCell(Vector2 pos)
     {
         Gizmos.color = Color.white;
         Gizmos.DrawCube(new Vector3(pos.x, pos.y, 0), Vector2.one);
     }
 
-    void DrawDeadCell(Vector2 pos)
+    private void DrawDeadCell(Vector2 pos)
     {
         Gizmos.color = Color.black;
         Gizmos.DrawCube(new Vector3(pos.x, pos.y, 0), Vector2.one);
