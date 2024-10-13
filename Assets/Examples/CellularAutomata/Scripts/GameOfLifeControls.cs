@@ -82,7 +82,7 @@ public class GameOfLifeControls : MonoBehaviour
     private IEnumerator Simulate()
     {
         yield return new WaitForSeconds(_stepTime);
-        
+
         BoundsInt bounds = new BoundsInt(-1, -1, 0, 3, 3, 1);
         while (true) {
 
