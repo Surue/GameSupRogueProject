@@ -1,14 +1,17 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Graph : MonoBehaviour
 {
-    private List<Node> _nodes;
-    private List<Edge> _edges;
+    private List<Node> _nodes = new();
+    private List<Edge> _edges = new();
+
+    public List<Node> GetNodes() => _nodes;
+    public List<Edge> GetEdges() => _edges;
     
-    private void Start()
+    private void Awake()
     {
-        // BFS
         _nodes = new()
         {
             new Node { name = "parentNode" },   // 0
@@ -30,6 +33,7 @@ public class Graph : MonoBehaviour
             new Edge() { parentNode = _nodes[2], childNode = _nodes[6] },
         };
         
+        // BFS
         Debug.Log("BFS");
         List<Node> openNodes = new() { _nodes[0] };
 
@@ -38,6 +42,7 @@ public class Graph : MonoBehaviour
             Node node = openNodes[0];
             Debug.Log(node.name);
             openNodes.RemoveAt(0);
+            
             foreach (Edge edge in _edges)
             {
                 if (edge.parentNode == node)

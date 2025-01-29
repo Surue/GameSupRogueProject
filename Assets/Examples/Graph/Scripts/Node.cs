@@ -15,16 +15,24 @@ public class Node
         CHEST,
         MERCHANT
     }
-    
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
+}
 
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+
+
+
+
+
+
+
+
+
+
+public class NodeWithChildren
+{
+    public string name;
+    
+    public Node child0;
+    public Node child1;
+    public bool isChild0Locked;
+    public bool isChild1Locked;
 }

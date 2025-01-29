@@ -6,4 +6,6 @@ public class Edge
 {
     public Node parentNode;
     public Node childNode;
+
+    public bool isLocked; 
 }
