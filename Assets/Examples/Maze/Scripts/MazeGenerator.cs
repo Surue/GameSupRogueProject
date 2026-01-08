@@ -1,7 +1,6 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public static class IListExtensions {
@@ -31,6 +30,11 @@ public class MazeGenerator : MonoBehaviour
     [SerializeField] private GameObject _wallPrefab;
     [SerializeField] private GameObject _floorPrefab;
     [SerializeField] private GameObject _cellingPrefab;
+    
+    [Header("Type")]
+    [SerializeField] private GenerationType _generationType;
+    [SerializeField] private bool _isPerfect;
+    [SerializeField][Range(0.0f, 1.0f)] private float _percentageOpening = 0.0f;
 
     private enum GenerationType {
         BFS,
@@ -39,7 +43,6 @@ public class MazeGenerator : MonoBehaviour
         Kruskal
     }
 
-   [SerializeField] private GenerationType _generationType;
     
     private enum CellType {
         Start,
@@ -54,13 +57,15 @@ public class MazeGenerator : MonoBehaviour
         public CellType CellType;
     }
 
-    private Cell[] cells_;
+    private Cell[] _cells;
+    
+    private int[] _kruskalParents;
     
     private void Start()
     {
         BoundsInt bounds = new (-1, -1, 0, 3, 3, 1);
         
-        cells_ = new Cell[_cellNbX * _cellNbY];
+        _cells = new Cell[_cellNbX * _cellNbY];
         
         for (int x = 0; x < _cellNbX; x++) {
             for(int y = 0; y < _cellNbY; y++) {
@@ -68,11 +73,11 @@ public class MazeGenerator : MonoBehaviour
                 int index = PosToIndex(x, y);
                 
                 //Default type is wall
-                cells_[index].CellType = CellType.Wall;
+                _cells[index].CellType = CellType.Wall;
                 
                 //Get neighbors indices
-                cells_[index].NeighborsIndices = new List<int>(4);
-                cells_[index].Weights = new List<float>(4);
+                _cells[index].NeighborsIndices = new List<int>(4);
+                _cells[index].Weights = new List<float>(4);
                 
                 foreach (Vector3Int pos in bounds.allPositionsWithin) {
                     //Check if is bounds or array
@@ -86,12 +91,12 @@ public class MazeGenerator : MonoBehaviour
                     if(pos.x != 0 && pos.y != 0) continue;
                     
                     //Add neighbors
-                    cells_[index].NeighborsIndices.Add(PosToIndex(x + pos.x, y + pos.y));
-                    cells_[index].Weights.Add(Random.Range(0f, 1f));
+                    _cells[index].NeighborsIndices.Add(PosToIndex(x + pos.x, y + pos.y));
+                    _cells[index].Weights.Add(Random.Range(0f, 1f));
                 }
                 
                 if(_useRandomNeighborsOrder)
-                    cells_[index].NeighborsIndices.Shuffle();
+                    _cells[index].NeighborsIndices.Shuffle();
             }
         }
 
@@ -107,14 +112,12 @@ public class MazeGenerator : MonoBehaviour
         }
     }
     
-    private int[] parents_;
-    
     private int Find(int i)
     {
-        if (parents_[i] == i)
+        if (_kruskalParents[i] == i)
             return i;
         
-        return parents_[i] = Find(parents_[i]);
+        return _kruskalParents[i] = Find(_kruskalParents[i]);
     }
 
     private void Union(int i, int j)
@@ -124,26 +127,26 @@ public class MazeGenerator : MonoBehaviour
         
         if (rootI != rootJ)
         {
-            parents_[rootI] = rootJ;
+            _kruskalParents[rootI] = rootJ;
         }
     }
 
     private IEnumerator BuildMazeKruskal()
     {
-        parents_ = new int[cells_.Length];
-        for (int i = 0; i < cells_.Length; i++)
+        _kruskalParents = new int[_cells.Length];
+        for (int i = 0; i < _cells.Length; i++)
         {
-            parents_[i] = i; 
-            cells_[i].CellType = CellType.Passage;
+            _kruskalParents[i] = i; 
+            _cells[i].CellType = CellType.Passage;
         }
 
-        cells_[0].CellType = CellType.Start;
+        _cells[0].CellType = CellType.Start;
         
-        var edges = new List<(float weight, int cellA, int cellB)>();
+        List<(float weight, int cellA, int cellB)> edges = new();
 
-        for (int cellIndex = 0; cellIndex < cells_.Length; cellIndex++)
+        for (int cellIndex = 0; cellIndex < _cells.Length; cellIndex++)
         {
-            Cell cell = cells_[cellIndex];
+            Cell cell = _cells[cellIndex];
             
             for (int neighborIdx = 0; neighborIdx < cell.NeighborsIndices.Count; neighborIdx++)
             {
@@ -160,7 +163,7 @@ public class MazeGenerator : MonoBehaviour
         edges.Sort((a, b) => a.weight.CompareTo(b.weight));
 
         int passagesCreated = 0;
-        int maxPassages = cells_.Length - 1; 
+        int maxPassages = _cells.Length - 1; 
         
         foreach (var edge in edges)
         {
@@ -172,7 +175,7 @@ public class MazeGenerator : MonoBehaviour
                 Union(cellA, cellB);
                 passagesCreated++;
 
-                Cell cA = cells_[cellA];
+                Cell cA = _cells[cellA];
                 for (int i = 0; i < cA.NeighborsIndices.Count; i++)
                 {
                     if (cA.NeighborsIndices[i] == cellB)
@@ -181,9 +184,9 @@ public class MazeGenerator : MonoBehaviour
                         break;
                     }
                 }
-                cells_[cellA] = cA;
+                _cells[cellA] = cA;
 
-                Cell cB = cells_[cellB];
+                Cell cB = _cells[cellB];
                 for (int i = 0; i < cB.NeighborsIndices.Count; i++)
                 {
                     if (cB.NeighborsIndices[i] == cellA)
@@ -192,7 +195,7 @@ public class MazeGenerator : MonoBehaviour
                         break;
                     }
                 }
-                cells_[cellB] = cB;
+                _cells[cellB] = cB;
                 
                 yield return new WaitForSeconds(0.01f);
             }
@@ -203,19 +206,81 @@ public class MazeGenerator : MonoBehaviour
             }
         }
         
+        // Set the farest cell as end 
         int endIndex = 0;
         float maxDistance = 0;
-        for (int i = 0; i < cells_.Length; i++)
+        for (int i = 0; i < _cells.Length; i++)
         {
             float distance = Vector2.Distance(IndexToWorldPos(0), IndexToWorldPos(i));
-            if (cells_[i].CellType == CellType.Passage && distance > maxDistance) 
+            if (_cells[i].CellType == CellType.Passage && distance > maxDistance) 
             {
                 maxDistance = distance;
                 endIndex = i;
             }
         }
-        cells_[endIndex].CellType = CellType.End;
-        cells_[0].CellType = CellType.Start;
+        _cells[endIndex].CellType = CellType.End;
+        _cells[0].CellType = CellType.Start;
+        
+        // Imperfect maze
+        if (!_isPerfect)
+        {
+            List<(int cellA, int neighborIdxA, int cellB, int neighborIdxB)> wallEdges = new();
+            
+            for (int cellIndex = 0; cellIndex < _cells.Length; cellIndex++)
+            {
+                Cell cell = _cells[cellIndex];
+                
+                for (int neighborIdx = 0; neighborIdx < cell.NeighborsIndices.Count; neighborIdx++)
+                {
+                    int neighborIndex = cell.NeighborsIndices[neighborIdx];
+                    
+                    if (cellIndex < neighborIndex)
+                    {
+                        if (cell.Weights[neighborIdx] < float.MaxValue)
+                        {
+                            int neighborIdxB = -1;
+                            Cell neighbor = _cells[neighborIndex];
+                            for (int i = 0; i < neighbor.NeighborsIndices.Count; i++)
+                            {
+                                if (neighbor.NeighborsIndices[i] == cellIndex)
+                                {
+                                    neighborIdxB = i;
+                                    break;
+                                }
+                            }
+
+                            if (neighborIdxB != -1)
+                            {
+                                wallEdges.Add((cellIndex, neighborIdx, neighborIndex, neighborIdxB));
+                            }
+                        }
+                    }
+                }
+            }
+            
+            int numberPassageToOpen = (int)(wallEdges.Count * _percentageOpening);
+            
+            wallEdges.Shuffle();
+
+            for (int i = 0; i < numberPassageToOpen; i++)
+            {
+                var wall = wallEdges[i];
+                int cellA = wall.cellA;
+                int neighborIdxA = wall.neighborIdxA;
+                int cellB = wall.cellB;
+                int neighborIdxB = wall.neighborIdxB;
+
+                Cell cA = _cells[cellA];
+                cA.Weights[neighborIdxA] = float.MaxValue;
+                _cells[cellA] = cA;
+
+                Cell cB = _cells[cellB];
+                cB.Weights[neighborIdxB] = float.MaxValue;
+                _cells[cellB] = cB;
+                
+                yield return new WaitForSeconds(0.01f);
+            }
+        }
         
         AddObjectsOnlyPassage();
     }
@@ -223,13 +288,13 @@ public class MazeGenerator : MonoBehaviour
     private IEnumerator BuildMazeBacktrace() 
     {
         //Generate starting pos
-        cells_[0].CellType = CellType.Start;
+        _cells[0].CellType = CellType.Start;
         yield return new WaitForSeconds(1);
 
         //Link case together
         Stack<int> stack = new Stack<int>( );
         stack.Push(0);
-        cells_[0].CellType = CellType.Passage;
+        _cells[0].CellType = CellType.Passage;
 
         float maxDistance = 0;
         int endIndex = 0;
@@ -238,12 +303,12 @@ public class MazeGenerator : MonoBehaviour
             int currentCell = stack.Pop();
             
             List<int> possibleNextCells = new List<int>();
-            foreach (int neighborsIndex in cells_[currentCell].NeighborsIndices) {
-                if (cells_[neighborsIndex].CellType == CellType.Wall) {
+            foreach (int neighborsIndex in _cells[currentCell].NeighborsIndices) {
+                if (_cells[neighborsIndex].CellType == CellType.Wall) {
                     bool canBeAddedToPassage = true;
                     
-                    foreach (int neighborsIndex2 in cells_[neighborsIndex].NeighborsIndices) {
-                        if (cells_[neighborsIndex2].CellType == CellType.Wall) continue;
+                    foreach (int neighborsIndex2 in _cells[neighborsIndex].NeighborsIndices) {
+                        if (_cells[neighborsIndex2].CellType == CellType.Wall) continue;
                         
                         if(neighborsIndex2 == currentCell) continue;
                         
@@ -259,7 +324,7 @@ public class MazeGenerator : MonoBehaviour
 
             if (possibleNextCells.Count > 0) {
                 int chosenCell = possibleNextCells[Random.Range(0, possibleNextCells.Count)];
-                cells_[chosenCell].CellType = CellType.Passage;
+                _cells[chosenCell].CellType = CellType.Passage;
                 stack.Push(currentCell);
                 stack.Push(chosenCell);
 
@@ -273,15 +338,38 @@ public class MazeGenerator : MonoBehaviour
         }
 
         //Select end pos
-        cells_[endIndex].CellType = CellType.End;
-        cells_[0].CellType = CellType.Start;
+        _cells[endIndex].CellType = CellType.End;
+        _cells[0].CellType = CellType.Start;
+        
+        // Imperfect maze
+        if (!_isPerfect && _percentageOpening > 0.0f)
+        {
+            List<int> _wallsIndex = new List<int>();
+            for (int i = 0; i < _cells.Length; i++)
+            {
+                if (_cells[i].CellType == CellType.Wall)
+                {
+                    _wallsIndex.Add(i);
+                }
+            }
+            
+            int numberPassageToOpen = (int)(_wallsIndex.Count * _percentageOpening);
+            
+            _wallsIndex.Shuffle();
 
-        AddObjects();
+            for (int i = 0; i < numberPassageToOpen; i++)
+            {
+                _cells[_wallsIndex[i]].CellType = CellType.Passage;
+                yield return new WaitForSeconds(0.1f);
+            }
+        }
+
+        AddObjectsWithWalls();
     }
 
     private IEnumerator BuildMaze() {
         //Generate starting pos
-        cells_[0].CellType = CellType.Start;
+        _cells[0].CellType = CellType.Start;
         yield return new WaitForSeconds(1);
 
         //Link case together
@@ -311,9 +399,9 @@ public class MazeGenerator : MonoBehaviour
 
             int nonWalledCell = 0;
             List<int> possibleNeighbors = new List<int>();
-            foreach (int neighborsIndex in cells_[index].NeighborsIndices) 
+            foreach (int neighborsIndex in _cells[index].NeighborsIndices) 
             {
-                if(cells_[neighborsIndex].CellType != CellType.Wall) 
+                if(_cells[neighborsIndex].CellType != CellType.Wall) 
                 {
                     nonWalledCell++;
                 } 
@@ -327,7 +415,7 @@ public class MazeGenerator : MonoBehaviour
             }
 
             if (nonWalledCell <= 1) {
-                cells_[index].CellType = CellType.Passage;
+                _cells[index].CellType = CellType.Passage;
                 openList.AddRange(possibleNeighbors);
                 
                 float distance = Vector2.Distance(IndexToWorldPos(0), IndexToWorldPos(index));
@@ -342,36 +430,52 @@ public class MazeGenerator : MonoBehaviour
         }
 
         //Select end pos
-        cells_[endIndex].CellType = CellType.End;
-        cells_[0].CellType = CellType.Start;
+        _cells[endIndex].CellType = CellType.End;
+        _cells[0].CellType = CellType.Start;
 
-        AddObjects();
+        // Imperfect maze
+        if (!_isPerfect && _percentageOpening > 0.0f)
+        {
+            List<int> _wallsIndex = new List<int>();
+            for (int i = 0; i < _cells.Length; i++)
+            {
+                if (_cells[i].CellType == CellType.Wall)
+                {
+                    _wallsIndex.Add(i);
+                }
+            }
+            
+            int numberPassageToOpen = (int)(_wallsIndex.Count * _percentageOpening);
+            
+            _wallsIndex.Shuffle();
+
+            for (int i = 0; i < numberPassageToOpen; i++)
+            {
+                _cells[_wallsIndex[i]].CellType = CellType.Passage;
+                yield return new WaitForSeconds(0.1f);
+            }
+        }
+        
+        AddObjectsWithWalls();
     }
 
     private void AddObjectsOnlyPassage()
     {
-        for (int cellIndex = 0; cellIndex < cells_.Length; cellIndex++)
+        for (int cellIndex = 0; cellIndex < _cells.Length; cellIndex++)
         {
-            Cell cell = cells_[cellIndex];
+            Cell cell = _cells[cellIndex];
             
 
             for (int i = 0; i < cell.NeighborsIndices.Count; i++)
             {
                 int neighborIndex = cell.NeighborsIndices[i];
-                Cell neighbor = cells_[neighborIndex];
                 
-                // --- La Ligne Clé Corrigée ---
-                // Vérifier si un mur doit être placé (si l'arête n'a PAS été sélectionnée par Kruskal)
                 bool isWall = cell.Weights[i] < float.MaxValue; 
-                // -----------------------------
-
-                // L'ancienne vérification était : if (neighbor.CellType == CellType.Wall)
+                
                 if (isWall) 
                 {
                     Vector2 selfPos = IndexToWorldPos(cellIndex);
                     Vector2 neighborPos = IndexToWorldPos(neighborIndex);
-                    
-                    // (Le reste de la logique de placement des murs reste le même)
                     
                     // TOP
                     if (selfPos.y < neighborPos.y)
@@ -414,7 +518,6 @@ public class MazeGenerator : MonoBehaviour
                 for (int i = 0; i < cell.NeighborsIndices.Count; i++)
                 {
                     int neighborIndex = cell.NeighborsIndices[i];
-                    Cell neighbor = cells_[neighborIndex];
                     
                     Vector2 neighborPos = IndexToWorldPos(neighborIndex);
 
@@ -472,16 +575,16 @@ public class MazeGenerator : MonoBehaviour
         }
     }
     
-    private void AddObjects()
+    private void AddObjectsWithWalls()
     {
-        for (int cellIndex = 0; cellIndex < cells_.Length; cellIndex++)
+        for (int cellIndex = 0; cellIndex < _cells.Length; cellIndex++)
         {
-            Cell cell = cells_[cellIndex];
+            Cell cell = _cells[cellIndex];
             if(cell.CellType == CellType.Wall) continue;
             for (int i = 0; i < cell.NeighborsIndices.Count; i++)
             {
                 int neighborIndex = cell.NeighborsIndices[i];
-                Cell neighbor = cells_[neighborIndex];
+                Cell neighbor = _cells[neighborIndex];
                 if (neighbor.CellType == CellType.Wall)
                 {
                     Vector2 selfPos = IndexToWorldPos(cellIndex);
@@ -528,7 +631,7 @@ public class MazeGenerator : MonoBehaviour
                 for (int i = 0; i < cell.NeighborsIndices.Count; i++)
                 {
                     int neighborIndex = cell.NeighborsIndices[i];
-                    Cell neighbor = cells_[neighborIndex];
+                    Cell neighbor = _cells[neighborIndex];
                     
                     Vector2 neighborPos = IndexToWorldPos(neighborIndex);
 
@@ -608,11 +711,11 @@ public class MazeGenerator : MonoBehaviour
 
     private void OnDrawGizmos() 
     {
-        if (cells_ == null) return;
+        if (_cells == null) return;
         
         for (int i = 0; i < _cellNbX * _cellNbY; i++) 
         {
-            switch (cells_[i].CellType) {
+            switch (_cells[i].CellType) {
                 case CellType.Start:
                     Gizmos.color = Color.blue;
                     break;

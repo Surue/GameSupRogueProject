@@ -156,8 +156,8 @@ MonoBehaviour:
   _floorPrefab: {fileID: 2581326873237463869, guid: eef23c8d22167814f9bcc703cb9c2e04, type: 3}
   _cellingPrefab: {fileID: 2581326873237463869, guid: d437af4aa195047438e71ef5ba049760, type: 3}
   _generationType: 3
-  _isPerfect: 1
-  _percentageOpening: 0
+  _isPerfect: 0
+  _percentageOpening: 0.2
 --- !u!4 &47345152
 Transform:
   m_ObjectHideFlags: 0
