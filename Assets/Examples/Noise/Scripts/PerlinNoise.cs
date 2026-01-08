@@ -15,6 +15,10 @@ public class PerlinNoise : MonoBehaviour
     [Header("Rolloff/Masking")]
     [SerializeField] private bool _useRolloff = true;
     [SerializeField] public AnimationCurve _heightRolloff = AnimationCurve.EaseInOut(0, 1, 1, 0);
+    
+    [Header("Height Remapping")]
+    [SerializeField] private bool _useHeightRemapping = true;
+    [SerializeField] public AnimationCurve _heightCurve = AnimationCurve.Linear(0, 0, 1, 1); 
 
     private float[,] _map;
 
@@ -40,7 +44,8 @@ public class PerlinNoise : MonoBehaviour
         Noise.GenerateNoiseMap(
             _map, size, size, _seed, _scale, _octave, 
             _persistance, _lacunarity, _offset,
-            _useRolloff, _heightRolloff 
+            _useRolloff, _heightRolloff,
+            _useHeightRemapping, _heightCurve
         );
     }
 
@@ -51,6 +56,13 @@ public class PerlinNoise : MonoBehaviour
             return;
         }
         _offset += Vector2.one * Time.deltaTime;
+        Generate();
+    }
+
+    private void OnValidate()
+    {
+        if (!Application.isPlaying) return; 
+        
         Generate();
     }
 
@@ -114,7 +126,7 @@ public class PerlinNoise : MonoBehaviour
 
 public static class Noise {
 
-    public static void GenerateNoiseMap(float[,] noiseMap, int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistance, float lacunarity, Vector2 offset, bool useRolloff, AnimationCurve heightRolloff) {
+    public static void GenerateNoiseMap(float[,] noiseMap, int mapWidth, int mapHeight, int seed, float scale, int octaves, float persistance, float lacunarity, Vector2 offset, bool useRolloff, AnimationCurve heightRolloff, bool useRemapping, AnimationCurve heightCurve) {
         System.Random prng = new System.Random(seed);
         Vector2[] octavesOffset = new Vector2[octaves];
         
@@ -208,6 +220,23 @@ public static class Noise {
 
                     // Apply rolloff
                     noiseMap[x, y] *= combinedMultiplier;
+                }
+            }
+        }
+        
+        // Height remapping 
+        if (useRemapping)
+        {
+            for(int y = 0; y < mapHeight; y++) 
+            {
+                for(int x = 0; x < mapWidth; x++) 
+                {
+                    
+                    float currentHeight = noiseMap[x, y];
+                    
+                    float remappedHeight = heightCurve.Evaluate(currentHeight);
+
+                    noiseMap[x, y] = remappedHeight;
                 }
             }
         }
