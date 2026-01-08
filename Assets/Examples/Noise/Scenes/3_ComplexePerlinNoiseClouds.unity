@@ -406,12 +406,37 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _mapSize: 250
   _seed: 0
-  _scale: 19.5
-  _octave: 8
-  _persistance: 0.68
-  _lacunarity: 3.95
+  _scale: 17.7
+  _octave: 5
+  _persistance: 0.22
+  _lacunarity: 1.87
   _height: 4
   _update: 1
+  _useRolloff: 0
+  _heightRolloff:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!4 &2096222939
 Transform:
   m_ObjectHideFlags: 0

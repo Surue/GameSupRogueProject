@@ -19,23 +19,7 @@ public static class IListExtensions {
 
 public class MazeGenerator : MonoBehaviour
 {
-    [SerializeField] private int _cellNbX = 20;
-    [SerializeField] private int _cellNbY = 20;
-    
-    [SerializeField][Range(0, 10)] private float _sizeCell = 1;
-
-    [SerializeField] private bool _useRandomNeighborsOrder = false;
-
-    [Header("Prefabs")] 
-    [SerializeField] private GameObject _wallPrefab;
-    [SerializeField] private GameObject _floorPrefab;
-    [SerializeField] private GameObject _cellingPrefab;
-    
-    [Header("Type")]
-    [SerializeField] private GenerationType _generationType;
-    [SerializeField] private bool _isPerfect;
-    [SerializeField][Range(0.0f, 1.0f)] private float _percentageOpening = 0.0f;
-
+    #region Nested Types
     private enum GenerationType {
         BFS,
         DFS,
@@ -56,11 +40,32 @@ public class MazeGenerator : MonoBehaviour
         public List<float> Weights;
         public CellType CellType;
     }
+    #endregion
+    
+    #region Fields
+    [SerializeField] private int _cellNbX = 20;
+    [SerializeField] private int _cellNbY = 20;
+    
+    [SerializeField][Range(0, 10)] private float _sizeCell = 1;
+
+    [SerializeField] private bool _useRandomNeighborsOrder = false;
+
+    [Header("Prefabs")] 
+    [SerializeField] private GameObject _wallPrefab;
+    [SerializeField] private GameObject _floorPrefab;
+    [SerializeField] private GameObject _cellingPrefab;
+    
+    [Header("Type")]
+    [SerializeField] private GenerationType _generationType;
+    [SerializeField] private bool _isPerfect;
+    [SerializeField][Range(0.0f, 1.0f)] private float _percentageOpening = 0.0f;
 
     private Cell[] _cells;
     
     private int[] _kruskalParents;
+    #endregion
     
+    #region Methods
     private void Start()
     {
         BoundsInt bounds = new (-1, -1, 0, 3, 3, 1);
@@ -735,4 +740,5 @@ public class MazeGenerator : MonoBehaviour
             Gizmos.DrawCube(IndexToWorldPos(i), new Vector3(_sizeCell, _sizeCell));
         }
     }
+    #endregion
 }

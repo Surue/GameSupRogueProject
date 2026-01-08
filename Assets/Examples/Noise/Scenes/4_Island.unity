@@ -410,9 +410,9 @@ MonoBehaviour:
   _octave: 9
   _persistance: 0.54
   _lacunarity: 2.04
-  _height: 28
+  _height: 80.2
   _update: 1
-  _useRolloff: 0
+  _useRolloff: 1
   _heightRolloff:
     serializedVersion: 2
     m_Curve:
