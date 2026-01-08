@@ -148,14 +148,14 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c273fde2ccd638841a1b1b9f111760d9, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  _cellNbX: 4
-  _cellNbY: 4
+  _cellNbX: 10
+  _cellNbY: 10
   _sizeCell: 10
   _useRandomNeighborsOrder: 1
   _wallPrefab: {fileID: 7936334558826733974, guid: 0ee6d9f6545275843b24ba2af2f1c83f, type: 3}
   _floorPrefab: {fileID: 2581326873237463869, guid: eef23c8d22167814f9bcc703cb9c2e04, type: 3}
   _cellingPrefab: {fileID: 2581326873237463869, guid: d437af4aa195047438e71ef5ba049760, type: 3}
-  _generationType: 1
+  _generationType: 3
 --- !u!4 &47345152
 Transform:
   m_ObjectHideFlags: 0
@@ -270,7 +270,7 @@ LightingSettings:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: Settings.lighting
-  serializedVersion: 9
+  serializedVersion: 10
   m_EnableBakedLightmaps: 0
   m_EnableRealtimeLightmaps: 0
   m_RealtimeEnvironmentLighting: 1
@@ -285,6 +285,12 @@ LightingSettings:
   m_BakeResolution: 40
   m_Padding: 2
   m_LightmapCompression: 3
+  m_LightmapPackingMode: 1
+  m_LightmapPackingMethod: 0
+  m_XAtlasPackingAttempts: 16384
+  m_XAtlasBruteForce: 0
+  m_XAtlasBlockAlign: 0
+  m_XAtlasRepackUnderutilizedLightmaps: 1
   m_AO: 0
   m_AOMaxDistance: 1
   m_CompAOExponent: 1

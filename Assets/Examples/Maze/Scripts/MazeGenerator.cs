@@ -106,76 +106,118 @@ public class MazeGenerator : MonoBehaviour
             StartCoroutine(BuildMaze());
         }
     }
-
-    private IEnumerator BuildMazeKruskal()
+    
+    private int[] parents_;
+    
+    private int Find(int i)
     {
-        while (true)
+        if (parents_[i] == i)
+            return i;
+        
+        return parents_[i] = Find(parents_[i]);
+    }
+
+    private void Union(int i, int j)
+    {
+        int rootI = Find(i);
+        int rootJ = Find(j);
+        
+        if (rootI != rootJ)
         {
-            float minWeight = float.MaxValue;
-            int minIndex = -1;
-            int neighborIndex = -1;
-
-            // Get cell with the lowest weight for neighbor
-            for (int cellIndex = 0; cellIndex < cells_.Length; cellIndex++)
-            {
-                Cell cell = cells_[cellIndex];
-                // Count passage neighbor
-                if(CountPassageneighbor(cell) >= 3) continue;
-                
-                for (int neighborIdx = 0; neighborIdx < cell.Weights.Count; neighborIdx++)
-                {
-                    Cell neighbor = cells_[cell.NeighborsIndices[neighborIdx]];
-                    if(CountPassageneighbor(neighbor) >= 3) continue;
-                    
-                    float weight = cell.Weights[neighborIdx];
-                    if (weight < minWeight)
-                    {
-                        minWeight = weight;
-                        minIndex = cellIndex;
-                        neighborIndex = neighborIdx;
-                    }
-                }
-            }
-
-            if (minIndex == -1)
-            {
-                break;
-            }
-            
-            // 
-            Cell c1 = cells_[minIndex];
-            Cell c2 = cells_[c1.NeighborsIndices[neighborIndex]];
-            
-            c1.CellType = CellType.Passage;
-            c1.Weights[neighborIndex] = float.MaxValue;
-            cells_[minIndex] = c1;
-            
-            c2.CellType = CellType.Passage;
-            for (int i = 0; i < c2.NeighborsIndices.Count; i++)
-            {
-                if (c2.NeighborsIndices[i] == minIndex)
-                {
-                    c2.Weights[i] = float.MaxValue;
-                }
-            }
-            cells_[c1.NeighborsIndices[neighborIndex]] = c2;
-            
-            yield return new WaitForSeconds(0.1f);
+            parents_[rootI] = rootJ;
         }
     }
 
-    private int CountPassageneighbor(Cell cell)
+    private IEnumerator BuildMazeKruskal()
     {
-        int passageNeighbor = 0;
-        for (int neighborIdx = 0; neighborIdx < cell.Weights.Count; neighborIdx++)
+        parents_ = new int[cells_.Length];
+        for (int i = 0; i < cells_.Length; i++)
         {
-            if (cells_[cell.NeighborsIndices[neighborIdx]].CellType == CellType.Passage)
-            {
-                passageNeighbor = neighborIdx;
-            }
+            parents_[i] = i; 
+            cells_[i].CellType = CellType.Passage;
         }
 
-        return passageNeighbor;
+        cells_[0].CellType = CellType.Start;
+        
+        var edges = new List<(float weight, int cellA, int cellB)>();
+
+        for (int cellIndex = 0; cellIndex < cells_.Length; cellIndex++)
+        {
+            Cell cell = cells_[cellIndex];
+            
+            for (int neighborIdx = 0; neighborIdx < cell.NeighborsIndices.Count; neighborIdx++)
+            {
+                int neighborIndex = cell.NeighborsIndices[neighborIdx];
+                
+                if (cellIndex < neighborIndex)
+                {
+                    float weight = cell.Weights[neighborIdx];
+                    edges.Add((weight, cellIndex, neighborIndex));
+                }
+            }
+        }
+        
+        edges.Sort((a, b) => a.weight.CompareTo(b.weight));
+
+        int passagesCreated = 0;
+        int maxPassages = cells_.Length - 1; 
+        
+        foreach (var edge in edges)
+        {
+            int cellA = edge.cellA;
+            int cellB = edge.cellB;
+
+            if (Find(cellA) != Find(cellB))
+            {
+                Union(cellA, cellB);
+                passagesCreated++;
+
+                Cell cA = cells_[cellA];
+                for (int i = 0; i < cA.NeighborsIndices.Count; i++)
+                {
+                    if (cA.NeighborsIndices[i] == cellB)
+                    {
+                        cA.Weights[i] = float.MaxValue;
+                        break;
+                    }
+                }
+                cells_[cellA] = cA;
+
+                Cell cB = cells_[cellB];
+                for (int i = 0; i < cB.NeighborsIndices.Count; i++)
+                {
+                    if (cB.NeighborsIndices[i] == cellA)
+                    {
+                        cB.Weights[i] = float.MaxValue;
+                        break;
+                    }
+                }
+                cells_[cellB] = cB;
+                
+                yield return new WaitForSeconds(0.01f);
+            }
+            
+            if (passagesCreated >= maxPassages)
+            {
+                break;
+            }
+        }
+        
+        int endIndex = 0;
+        float maxDistance = 0;
+        for (int i = 0; i < cells_.Length; i++)
+        {
+            float distance = Vector2.Distance(IndexToWorldPos(0), IndexToWorldPos(i));
+            if (cells_[i].CellType == CellType.Passage && distance > maxDistance) 
+            {
+                maxDistance = distance;
+                endIndex = i;
+            }
+        }
+        cells_[endIndex].CellType = CellType.End;
+        cells_[0].CellType = CellType.Start;
+        
+        AddObjectsOnlyPassage();
     }
 
     private IEnumerator BuildMazeBacktrace() 
@@ -306,6 +348,130 @@ public class MazeGenerator : MonoBehaviour
         AddObjects();
     }
 
+    private void AddObjectsOnlyPassage()
+    {
+        for (int cellIndex = 0; cellIndex < cells_.Length; cellIndex++)
+        {
+            Cell cell = cells_[cellIndex];
+            
+
+            for (int i = 0; i < cell.NeighborsIndices.Count; i++)
+            {
+                int neighborIndex = cell.NeighborsIndices[i];
+                Cell neighbor = cells_[neighborIndex];
+                
+                // --- La Ligne Clé Corrigée ---
+                // Vérifier si un mur doit être placé (si l'arête n'a PAS été sélectionnée par Kruskal)
+                bool isWall = cell.Weights[i] < float.MaxValue; 
+                // -----------------------------
+
+                // L'ancienne vérification était : if (neighbor.CellType == CellType.Wall)
+                if (isWall) 
+                {
+                    Vector2 selfPos = IndexToWorldPos(cellIndex);
+                    Vector2 neighborPos = IndexToWorldPos(neighborIndex);
+                    
+                    // (Le reste de la logique de placement des murs reste le même)
+                    
+                    // TOP
+                    if (selfPos.y < neighborPos.y)
+                    {
+                        GameObject instance = Instantiate(_cellingPrefab);
+                        instance.transform.position = selfPos + new Vector2(0f, _sizeCell * 0.5f);
+                    }
+                    
+                    // BOTTOM
+                    if (selfPos.y > neighborPos.y)
+                    {
+                        GameObject instance = Instantiate(_floorPrefab);
+                        instance.transform.position = selfPos + new Vector2(0f, -_sizeCell * 0.5f);
+                    }
+                    
+                    // LEFT
+                    if (selfPos.x > neighborPos.x)
+                    {
+                        GameObject instance = Instantiate(_wallPrefab);
+                        instance.transform.position = selfPos + new Vector2(-_sizeCell * 0.5f, 0);
+                    }
+                    
+                    // RIGHT
+                    if (selfPos.x < neighborPos.x)
+                    {
+                        GameObject instance = Instantiate(_wallPrefab);
+                        instance.transform.position = selfPos + new Vector2(_sizeCell * 0.5f, 0);
+                    }
+                }
+            }
+            
+            if (cell.NeighborsIndices.Count < 4)
+            {
+                bool hasTop = false;
+                bool hasBottom = false;
+                bool hasLeft = false;
+                bool hasRight = false;
+
+                Vector2 selfPos = IndexToWorldPos(cellIndex);
+                for (int i = 0; i < cell.NeighborsIndices.Count; i++)
+                {
+                    int neighborIndex = cell.NeighborsIndices[i];
+                    Cell neighbor = cells_[neighborIndex];
+                    
+                    Vector2 neighborPos = IndexToWorldPos(neighborIndex);
+
+                    if (selfPos.y != neighborPos.y)
+                    {
+                        if (selfPos.y < neighborPos.y)
+                        {
+                            hasTop = true;
+                        }else if (selfPos.y > neighborPos.y)
+                        {
+                            hasBottom = true;
+                        }
+                    }
+
+                    if (selfPos.x != neighborPos.x)
+                    {
+                        if (selfPos.x > neighborPos.x)
+                        {
+                            hasLeft = true;
+                        }else if (selfPos.x < neighborPos.x)
+                        {
+                            hasRight = true;
+                        }
+                    }
+                }
+                
+                // TOP
+                if (!hasTop)
+                {
+                    GameObject instance = Instantiate(_cellingPrefab);
+                    instance.transform.position = selfPos + new Vector2(0f, _sizeCell * 0.5f);
+                }
+                    
+                // BOTTOM
+                if (!hasBottom)
+                {
+                    GameObject instance = Instantiate(_floorPrefab);
+                    instance.transform.position = selfPos + new Vector2(0f, -_sizeCell * 0.5f);
+                }
+                    
+                // LEFT
+                if (!hasLeft)
+                {
+                    GameObject instance = Instantiate(_wallPrefab);
+                    instance.transform.position = selfPos + new Vector2(-_sizeCell * 0.5f, 0);
+                }
+                    
+                // RIGHT
+                if (!hasRight)
+                {
+                    GameObject instance = Instantiate(_wallPrefab);
+                    instance.transform.position = selfPos + new Vector2(_sizeCell * 0.5f, 0);
+                }
+            }
+        }
+    }
+    
     private void AddObjects()
     {
         for (int cellIndex = 0; cellIndex < cells_.Length; cellIndex++)
