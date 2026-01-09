@@ -23,12 +23,26 @@ public class Bsp : MonoBehaviour
 
     private Room _rootRoom;
 
+    private void Start()
+    {
+        Clear();
+        Generate();
+    }
+
     public void Generate() {
         _rootRoom.extends = new Vector2(_sizeX * 2, _sizeY * 2);
         _rootRoom.center = Vector2.zero;
         _rootRoom.children = new List<Room>();
 
+        // First snapshot
+        SnapshotRecorder.Instance.BeginNewSnapshot("Initial State");
+        SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(_rootRoom.center, _rootRoom.extends, Color.white));
+        
         _rootRoom.children.AddRange(CheckDivision(_rootRoom));
+        
+        // Final snapshot
+        SnapshotRecorder.Instance.BeginNewSnapshot("Final Result");
+        AddExistingRoomToSnapshotAndAllChildren(_rootRoom);
     }
 
     public void Clear()
@@ -80,11 +94,26 @@ public class Bsp : MonoBehaviour
         //Add children
         room.children.Add(roomRight);
         room.children.Add(roomLeft);
+        
+        // Snapshot
+        TakeSnapshot(room, "Division along X axis");
 
+        // Subdivision
         roomRight.children.AddRange(CheckDivision(roomRight));
         roomLeft.children.AddRange(CheckDivision(roomLeft));
-
+        
         return rooms;
+    }
+
+    private void AddExistingRoomToSnapshotAndAllChildren(Room room)
+    {
+        SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.center, room.extends, Color.white));
+        
+        if (room.children == null) return;
+        for (int i = 0; i < room.children.Count; i++)
+        {
+            AddExistingRoomToSnapshotAndAllChildren(room.children[i]);
+        }
     }
 
     private List<Room> DivideByY(Room room) {
@@ -111,26 +140,42 @@ public class Bsp : MonoBehaviour
         //Add children
         room.children.Add(roomUp);
         room.children.Add(roomDown);
+        
+        // Snapshot
+        TakeSnapshot(room, "Division along Y axis");
 
+        // Subdivision
         roomDown.children.AddRange(CheckDivision(roomDown));
         roomUp.children.AddRange(CheckDivision(roomUp));
 
         return rooms;
     }
 
-    private void OnDrawGizmos() {
-        DrawRoom(_rootRoom);
-    }
-
-    private static void DrawRoom(Room room) {
-        Gizmos.DrawWireCube(room.center, room.extends);
-
-        if(room.children == null) return;
-        foreach(Room roomChild in room.children) {
-            Gizmos.color = Color.cyan;
-            DrawRoom(roomChild);
+    private void TakeSnapshot(Room room, string description)
+    {
+        SnapshotRecorder.Instance.BeginNewSnapshot(description);
+        if (room.extends != _rootRoom.extends)
+        {
+            AddExistingRoomToSnapshotAndAllChildren(_rootRoom);
         }
+        SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.children[0].center, room.children[0].extends, Color.red));
+        SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.children[1].center, room.children[1].extends, Color.red));
+        SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.center, room.extends, Color.blue));
     }
+
+    // private void OnDrawGizmos() {
+    //     DrawRoom(_rootRoom);
+    // }
+    //
+    // private static void DrawRoom(Room room) {
+    //     Gizmos.DrawWireCube(room.center, room.extends);
+    //
+    //     if(room.children == null) return;
+    //     foreach(Room roomChild in room.children) {
+    //         Gizmos.color = Color.cyan;
+    //         DrawRoom(roomChild);
+    //     }
+    // }
 }
 
 #if UNITY_EDITOR
