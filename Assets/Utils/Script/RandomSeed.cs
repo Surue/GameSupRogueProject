@@ -2,7 +2,7 @@
 using UnityEngine;
 using Random = UnityEngine.Random;
 
-public class RandomSeed:MonoBehaviour {
+public class RandomSeed : MonoBehaviour {
 
     public float forcedSeed = 0;
     public float curSeed;

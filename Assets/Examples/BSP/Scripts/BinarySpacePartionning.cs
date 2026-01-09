@@ -4,7 +4,7 @@ using UnityEngine;
 using UnityEditor;
 #endif
 
-public class Bsp : MonoBehaviour
+public class BinarySpacePartionning : MonoBehaviour
 {
     //Option 
     [Range(0, 50)] [SerializeField] private float _sizeX;
@@ -12,6 +12,8 @@ public class Bsp : MonoBehaviour
 
     [Range(0, 50)] [SerializeField] private float _roomSizeX;
     [Range(0, 50)] [SerializeField] private float _roomSizeY;
+
+    [SerializeField] private bool _useSeed = false;
 
     //Struct
     private struct Room {
@@ -65,7 +67,7 @@ public class Bsp : MonoBehaviour
     }
 
     private List<Room> DivideByProbability(Room room) {
-        float probability = Random.Range(0f, 1f);
+        var probability = _useSeed ? RandomSeed.GetValue() : Random.Range(0f, 1f);
 
         return probability > 0.5 ? DivideByX(room) : DivideByY(room);
     }
@@ -77,7 +79,16 @@ public class Bsp : MonoBehaviour
         Room roomRight;
 
         //Value for cut
-        float posX = Random.Range(0 + _roomSizeX * 0.5f, room.extends.x - _roomSizeX * 0.5f);
+        float posX;
+
+        if (_useSeed)
+        {
+            posX = RandomSeed.GetValue() * (room.extends.x - _roomSizeX * 0.5f) + _roomSizeX * 0.5f;
+        }
+        else
+        {
+            posX = Random.Range(0 + _roomSizeX * 0.5f, room.extends.x - _roomSizeX * 0.5f);
+        }
 
         //Extends
         roomRight.extends = new Vector2(posX, room.extends.y);
@@ -105,17 +116,6 @@ public class Bsp : MonoBehaviour
         return rooms;
     }
 
-    private void AddExistingRoomToSnapshotAndAllChildren(Room room)
-    {
-        SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.center, room.extends, Color.white));
-        
-        if (room.children == null) return;
-        for (int i = 0; i < room.children.Count; i++)
-        {
-            AddExistingRoomToSnapshotAndAllChildren(room.children[i]);
-        }
-    }
-
     private List<Room> DivideByY(Room room) {
         List<Room> rooms = new List<Room>();
 
@@ -123,7 +123,16 @@ public class Bsp : MonoBehaviour
         Room roomDown;
 
         //Value for cut
-        float posY = Random.Range(0 + _roomSizeY * 0.5f, room.extends.y - _roomSizeY * 0.5f);
+        float posY;
+
+        if (_useSeed)
+        {
+            posY = RandomSeed.GetValue() * (room.extends.y - _roomSizeY * 0.5f) + _roomSizeY * 0.5f;
+        }
+        else
+        {
+            posY = Random.Range(0 + _roomSizeY * 0.5f, room.extends.y - _roomSizeY * 0.5f);
+        }
 
         //Extends
         roomDown.extends = new Vector2(room.extends.x, posY);
@@ -162,27 +171,24 @@ public class Bsp : MonoBehaviour
         SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.children[1].center, room.children[1].extends, Color.red));
         SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.center, room.extends, Color.blue));
     }
-
-    // private void OnDrawGizmos() {
-    //     DrawRoom(_rootRoom);
-    // }
-    //
-    // private static void DrawRoom(Room room) {
-    //     Gizmos.DrawWireCube(room.center, room.extends);
-    //
-    //     if(room.children == null) return;
-    //     foreach(Room roomChild in room.children) {
-    //         Gizmos.color = Color.cyan;
-    //         DrawRoom(roomChild);
-    //     }
-    // }
+    
+    private void AddExistingRoomToSnapshotAndAllChildren(Room room)
+    {
+        SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.center, room.extends, Color.white));
+        
+        if (room.children == null) return;
+        for (int i = 0; i < room.children.Count; i++)
+        {
+            AddExistingRoomToSnapshotAndAllChildren(room.children[i]);
+        }
+    }
 }
 
 #if UNITY_EDITOR
-[CustomEditor(typeof(Bsp))]
+[CustomEditor(typeof(BinarySpacePartionning))]
 public class BspEditor:Editor {
     public override void OnInspectorGUI() {
-        Bsp myTarget = (Bsp)target;
+        BinarySpacePartionning myTarget = (BinarySpacePartionning)target;
 
         if(GUILayout.Button("Generate")) {
             myTarget.Generate();
