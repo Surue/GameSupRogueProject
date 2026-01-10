@@ -34,7 +34,6 @@ public class UIController : MonoBehaviour
 
     private void UpdateFireflyCount(int newValue)
     {
-        Debug.Log("ICI");
         _firefliesManager.SetFireflyCount(newValue);
     }
 }

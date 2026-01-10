@@ -2,18 +2,22 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public class Firefly : MonoBehaviour
 {
+    public const float RADIUS = 1.5f;
+    public const float ACCELERATION = 0.5f;
     [SerializeField] private SpriteRenderer _sprite;
-    [SerializeField] private CircleCollider2D _circleCollider2D;
     [SerializeField] private float _energyIncreaseOverTime;
     [SerializeField] private float _colorDecreaseOverTime;
     [SerializeField] private float _energyInteraction;
     [SerializeField] private float _neighborRadius;
     
-    private List<Firefly> _neighbors = new List<Firefly>();
+    public Vector2 _velocity;
+    
+    public List<Firefly> Neighbors = new List<Firefly>();
 
     private float _energy;
 
@@ -54,47 +58,13 @@ public class Firefly : MonoBehaviour
         }
     }
 
-    [SerializeField] private float _acceleration = 0.1f;
-    private Vector2 _velocity;
-    
-    private void Update()
-    {
-        float friction = 0.999f;
-        Vector2 acc = new Vector2(Random.Range(-_acceleration, _acceleration), Random.Range(-_acceleration, _acceleration));
-        _velocity = friction * _velocity + acc * Time.deltaTime;
-        var transform1 = transform;
-        transform1.position += (Vector3)_velocity * Time.deltaTime;
-
-        if (transform1.position.x < -9)
-        {
-            _velocity.x *= -0.7f;
-            transform1.position = new Vector3(-9, transform1.position.y);
-        } 
-        else if (transform1.position.x > 9)
-        {
-            _velocity.x *= -0.7f;
-            transform1.position = new Vector3(9, transform1.position.y);
-        }
-        
-        if (transform1.position.y < -5)
-        {
-            _velocity.y *= -0.7f;
-            transform1.position = new Vector3(transform1.position.x, -5);
-        } 
-        else if (transform1.position.y > 5)
-        {
-            _velocity.y *= -0.7f;
-            transform1.position = new Vector3(transform1.position.x, 5);
-        }
-    }
-
     private void LateUpdate()
     {
         if (!_isEmittingLight)
         {
             Vector2 selfPosition = transform.position;
             int sum = 0;
-            foreach (var neighbor in _neighbors)
+            foreach (var neighbor in Neighbors)
             {
                 if (Math.Abs(neighbor._colorLerpValue - 1) < 0.01f && Vector2.Distance(selfPosition, neighbor.transform.position) < _neighborRadius)
                 {
@@ -105,29 +75,10 @@ public class Firefly : MonoBehaviour
             _energy += sum * _energyInteraction;
         }
     }
-
-    private void OnTriggerEnter2D(Collider2D other)
-    {
-        if (other.gameObject.TryGetComponent(out Firefly neighbor))
-        {
-            if (!_neighbors.Contains(neighbor))
-            {
-                _neighbors.Add(neighbor);
-            }
-        }
-    }
-
-    private void OnTriggerExit2D(Collider2D other)
-    {
-        if (other.gameObject.TryGetComponent(out Firefly neighbor))
-        {
-            _neighbors.Remove(neighbor);
-        }
-    }
-
+    
     private void OnDrawGizmosSelected()
     {
-        foreach (var neighbor in _neighbors)
+        foreach (var neighbor in Neighbors)
         {
             Gizmos.DrawLine(transform.position, neighbor.transform.position);
         }
