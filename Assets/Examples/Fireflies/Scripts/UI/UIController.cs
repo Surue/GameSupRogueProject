@@ -14,9 +14,6 @@ public class UIController : MonoBehaviour
     // FPS Counter
     private Label _fpsValueLabel;
     
-    // Firefly counter
-    private TextField _fireflyCountTextField;
-    
     List<float> _timedFPS = new (10);
     private int _currentTimedFPSIndex = 0;
     
@@ -27,10 +24,6 @@ public class UIController : MonoBehaviour
         // FPS Counter
         _fpsValueLabel = rootElement.Q<Label>("FPSValue");
         
-        // Firefly counter
-        _fireflyCountTextField = rootElement.Q<TextField>("FireflyCounterTextField");
-        _fireflyCountTextField.SetValueWithoutNotify(_firefliesManager.GetFireflyCount().ToString());
-        _fireflyCountTextField.RegisterValueChangedCallback(evt => UpdateFireflyCount(System.Convert.ToInt32(evt.newValue)));
 
         for (int i = 0; i < 10; i++)
         {
@@ -53,10 +46,5 @@ public class UIController : MonoBehaviour
         average /= _timedFPS.Count;
         
         _fpsValueLabel.text = String.Format("{0:0.0}", 1.0f / average);
-    }
-
-    private void UpdateFireflyCount(int newValue)
-    {
-        _firefliesManager.SetFireflyCount(newValue);
     }
 }

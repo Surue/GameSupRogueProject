@@ -17,6 +17,7 @@ public class FirefliesManager : MonoBehaviour
     [SerializeField] private GameObject _prefabFirefly;
     [SerializeField] private int _nbFirefly;
     [SerializeField] private Vector2 _spawnAreaSize;
+    [SerializeField] private int _maxNeighbors;
     
     [Header("Space partitioning")]
     [SerializeField] private bool _useSpacePartitioning;
@@ -24,49 +25,69 @@ public class FirefliesManager : MonoBehaviour
     private List<Transform> _instantiatedFireflies = new();
     private List<SpriteRenderer> _sprites = new();
 
-    private List<Vector3> _positions = new ();
-    private List<Vector2> _velocities = new ();
-    private List<float> _energies = new ();
-    private List<float> _colorLerpValues = new ();
-    private List<bool> _isEmittingLights = new ();
+    private Vector3[] _positions;
+    private Vector2[] _velocities;
+    private float[] _energies;
+    private float[] _colorLerpValues;
+    private bool[] _isEmittingLights ;
     
-    private List<List<int>> _neighborsIndex;
+    private int[] _neighborsIndex;
+    private int[] _neighborsCount;
+
+    private Color _noLightColor;
+    private Color _lightColor;
     
     private void Start()
     {
         _instantiatedFireflies = new List<Transform>();
-        _neighborsIndex = new List<List<int>>();
-        _energies = new List<float>();
-        _colorLerpValues = new List<float>();
-        _isEmittingLights = new List<bool>();
+        
+        _neighborsCount = new int[_nbFirefly];
+        _neighborsIndex = new int[_nbFirefly * _maxNeighbors];
+        _isEmittingLights = new bool[_nbFirefly];
+        _colorLerpValues = new float[_nbFirefly];
+        _energies = new float[_nbFirefly];
+        _velocities = new Vector2[_nbFirefly];
+        _positions = new Vector3[_nbFirefly];
 
-        SetFireflyCount(_nbFirefly);
+        _noLightColor = Color.gray;
+        _lightColor = Color.yellow;
+        
+        for (int i = 0; i < _nbFirefly; i++)
+        {
+            GameObject instance = Instantiate(
+                _prefabFirefly, 
+                new Vector3(Random.Range(-_spawnAreaSize.x * 0.5f, _spawnAreaSize.x * 0.5f), Random.Range(-_spawnAreaSize.y * 0.5f, _spawnAreaSize.y * 0.5f), 0), 
+                Quaternion.identity);
+            
+            _instantiatedFireflies.Add(instance.transform);
+            _neighborsCount[i] = 0;
+            _positions[i] = instance.transform.position;
+            _velocities[i] = Vector2.zero;
+            _energies[i] = Random.Range(0.0f, 1.0f);
+            _isEmittingLights[i] = false;
+            _colorLerpValues[i] = 0;
+            _sprites.Add(instance.GetComponentInChildren<SpriteRenderer>());
+            _sprites[^1].color = Color.Lerp(_noLightColor, _lightColor, 0);
+        }
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
-        if (_instantiatedFireflies.Count == 0)
+        if (_nbFirefly == 0)
         {
             return;
         }
         
-        int fireflyCount = _instantiatedFireflies.Count;
-        
-        // Reset
-        for (int i = 0; i < fireflyCount; i++)
-        {
-            _neighborsIndex[i].Clear();
-        }
-        
         // Position
-        float friction = 0.999f;
-        for (int i = 0; i < fireflyCount; i++)
+        float dt = Time.deltaTime;
+        const float friction = 0.999f;
+        for (int i = 0; i < _nbFirefly; i++)
         {
             Vector2 vel = _velocities[i];
             Vector3 pos = _positions[i];
             Vector2 acc = new Vector2(Random.Range(-ACCELERATION, ACCELERATION), Random.Range(-ACCELERATION, ACCELERATION));
-            vel = friction * vel + acc * Time.fixedDeltaTime;
-            pos += (Vector3)vel * Time.fixedDeltaTime;
+            vel = friction * vel + acc * dt;
+            pos += (Vector3)vel * dt;
 
             if (pos.x < -9)
             {
@@ -95,33 +116,36 @@ public class FirefliesManager : MonoBehaviour
             _velocities[i] = vel;
         }
 
+        for (int i = 0; i < _nbFirefly; i++)
+        {
+            _neighborsCount[i] = 0;
+        }
+        
         // Contact
-        for (int i = 0; i < fireflyCount; i++)
+        for (int i = 0; i < _nbFirefly; i++)
         {
             Vector3 pos = _positions[i];
-            List<int> neighbors = _neighborsIndex[i];
-            
-            for (int j = i + 1; j < fireflyCount; j++)
+
+            for (int j = i + 1; j < _nbFirefly; j++)
             {
                 if (Vector3.Distance(pos, _positions[j]) <= RADIUS)
                 {
-                    neighbors.Add(j);
-                    _neighborsIndex[j].Add(i);
+                    _neighborsIndex[i * _maxNeighbors + _neighborsCount[i]++] = j;
+                    _neighborsIndex[j * _maxNeighbors + _neighborsCount[j]++] = i;
                 }
             }
         }
         
         // Energy
-        for (int i = 0; i < fireflyCount; i++)
+        for (int i = 0; i < _nbFirefly; i++)
         {
             if (_isEmittingLights[i]) continue;
             
             int sum = 0;
-            var neighbors = _neighborsIndex[i];
-            int neighborCount = neighbors.Count;
+            int neighborCount = _neighborsCount[i];
             for (int j = 0; j < neighborCount; j++)
             {
-                int neighborIndex = neighbors[j];
+                int neighborIndex = _neighborsIndex[i * _maxNeighbors + j];
                 if (Math.Abs(_colorLerpValues[neighborIndex] - 1) < 0.01f)
                 {
                     sum++;
@@ -132,11 +156,11 @@ public class FirefliesManager : MonoBehaviour
         }
         
         // Lights
-        for (int i = 0; i < fireflyCount; i++)
+        for (int i = 0; i < _nbFirefly; i++)
         {
             if (_isEmittingLights[i])
             {
-                _sprites[i].color = Color.Lerp(Color.gray, Color.yellow, _colorLerpValues[i]);
+                _sprites[i].color = Color.Lerp(_noLightColor, _lightColor, _colorLerpValues[i]);
                 _colorLerpValues[i] -= COLOR_DECRESE_OVER_TIME;
 
                 if (_colorLerpValues[i] <= 0)
@@ -157,61 +181,22 @@ public class FirefliesManager : MonoBehaviour
             }
         }
     }
-
-    public void SetFireflyCount(int newValue)
-    {
-        if (_instantiatedFireflies.Count < newValue)
-        {
-            var gap = newValue - _instantiatedFireflies.Count;
-            for (int i = 0; i < gap; i++)
-            {
-                var instance = Instantiate(_prefabFirefly, new Vector3(Random.Range(-_spawnAreaSize.x * 0.5f, _spawnAreaSize.x * 0.5f), Random.Range(-_spawnAreaSize.y * 0.5f, _spawnAreaSize.y * 0.5f), 0), Quaternion.identity);
-            
-                _instantiatedFireflies.Add(instance.transform);
-                _neighborsIndex.Add(new List<int>());
-                _positions.Add(instance.transform.position);
-                _velocities.Add(Vector2.zero);
-                _energies.Add(Random.Range(0.0f, 1.0f));
-                _isEmittingLights.Add(false);
-                _colorLerpValues.Add(0);
-                _sprites.Add(instance.GetComponentInChildren<SpriteRenderer>());
-                _sprites[^1].color = Color.Lerp(Color.gray, Color.yellow, 0);
-            }
-        }
-        else
-        {
-            var gap = _instantiatedFireflies.Count - newValue;
-            for (int i = 0; i < gap; i++)
-            {
-                Destroy(_instantiatedFireflies[^1]);
-                _instantiatedFireflies.RemoveAt(_instantiatedFireflies.Count - 1);
-                _positions.RemoveAt(_instantiatedFireflies.Count - 1);
-                _velocities.RemoveAt(_instantiatedFireflies.Count - 1);
-                _energies.RemoveAt(_instantiatedFireflies.Count - 1);
-                _isEmittingLights.RemoveAt(_instantiatedFireflies.Count - 1);
-                _colorLerpValues.RemoveAt(_instantiatedFireflies.Count - 1);
-                _sprites.RemoveAt(_instantiatedFireflies.Count - 1);
-            }
-        }
-    }
-
-    public int GetFireflyCount()
-    {
-        return _nbFirefly;
-    }
     
     private void OnDrawGizmos()
     {
+        if (!Application.isPlaying) return;
+        
         Gizmos.DrawWireCube(Vector3.zero, _spawnAreaSize);
 
-        for (var i = 0; i < _instantiatedFireflies.Count; i++)
+        for (var i = 0; i < _nbFirefly; i++)
         {
             var firefly = _instantiatedFireflies[i];
             if (Selection.activeGameObject == firefly.gameObject)
             {
-                foreach (var neighborIndex in _neighborsIndex[i])
+                for (int j = 0; j < _neighborsCount[i]; j++)
                 {
-                    Gizmos.DrawLine(firefly.transform.position, _instantiatedFireflies[neighborIndex].transform.position);
+                    var otherIndex = _neighborsIndex[i * _maxNeighbors + j];
+                    Gizmos.DrawLine(_positions[i], _positions[otherIndex]);
                 }
             }
         }
