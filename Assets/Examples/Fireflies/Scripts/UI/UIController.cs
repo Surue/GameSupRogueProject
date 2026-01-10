@@ -1,5 +1,8 @@
+using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.UIElements;
 
@@ -14,6 +17,9 @@ public class UIController : MonoBehaviour
     // Firefly counter
     private TextField _fireflyCountTextField;
     
+    List<float> _timedFPS = new (10);
+    private int _currentTimedFPSIndex = 0;
+    
     private void Start()
     {
         var rootElement = _UIDocument.rootVisualElement;
@@ -25,11 +31,28 @@ public class UIController : MonoBehaviour
         _fireflyCountTextField = rootElement.Q<TextField>("FireflyCounterTextField");
         _fireflyCountTextField.SetValueWithoutNotify(_firefliesManager.GetFireflyCount().ToString());
         _fireflyCountTextField.RegisterValueChangedCallback(evt => UpdateFireflyCount(System.Convert.ToInt32(evt.newValue)));
+
+        for (int i = 0; i < 10; i++)
+        {
+            _timedFPS.Add(0); 
+        }
     }
 
     private void Update()
     {
-        _fpsValueLabel.text = (1.0f / Time.deltaTime).ToString();
+        _timedFPS[_currentTimedFPSIndex] = Time.deltaTime;
+        _currentTimedFPSIndex++;
+
+        if (_currentTimedFPSIndex >= 10)
+        {
+            _currentTimedFPSIndex = 0;
+        }
+        
+        float average = _timedFPS.Sum();
+
+        average /= _timedFPS.Count;
+        
+        _fpsValueLabel.text = String.Format("{0:0.0}", 1.0f / average);
     }
 
     private void UpdateFireflyCount(int newValue)
