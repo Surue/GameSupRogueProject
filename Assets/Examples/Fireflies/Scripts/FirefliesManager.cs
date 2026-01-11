@@ -274,29 +274,38 @@ public class FirefliesManager : MonoBehaviour
         if (!Application.isPlaying) return;
         
         Gizmos.DrawWireCube(Vector3.zero, _spawnAreaSize);
+        
+        GameObject selectedGameObject = Selection.activeGameObject;
 
-        for (var i = 0; i < _nbFirefly; i++)
+        if (selectedGameObject == gameObject)
         {
-            var firefly = _instantiatedFireflies[i];
-            if (Selection.activeGameObject == firefly.gameObject)
+            int gridIndex = GetGridIndexFromPosition(GetMouseWorldPosition());
+
+            for (int i = 0; i < _gridFireflyCount[gridIndex]; i++)
             {
-                for (int j = 0; j < _neighborsCount[i]; j++)
+                Gizmos.DrawWireCube(_positions[_grid[gridIndex * _nbFirefly + i]], Vector3.one * 0.2f);
+            }
+        }
+        else
+        {
+            for (int i = 0; i < _nbFirefly; i++)
+            {
+                Transform firefly = _instantiatedFireflies[i];
+                if (selectedGameObject == firefly.gameObject)
                 {
-                    var otherIndex = _neighborsIndex[i * _maxNeighbors + j];
-                    Gizmos.DrawLine(_positions[i], _positions[otherIndex]);
+                    for (int j = 0; j < _neighborsCount[i]; j++)
+                    {
+                        int otherIndex = _neighborsIndex[i * _maxNeighbors + j];
+                        Gizmos.DrawLine(_positions[i], _positions[otherIndex]);
+                    }
+
+                    break;
                 }
             }
         }
-
-        var gridIndex = GetGridIndexFromPosition(GetMouseWorldPosition());
-
-        for (int i = 0; i < _gridFireflyCount[gridIndex]; i++)
-        {
-            Gizmos.DrawWireCube(_positions[_grid[gridIndex * _nbFirefly + i]], Vector3.one * 0.2f);
-        }
     }
-    
-    public Vector3 GetMouseWorldPosition()
+
+    private Vector3 GetMouseWorldPosition()
     {
         Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
         
@@ -304,9 +313,8 @@ public class FirefliesManager : MonoBehaviour
         {
             return hit.point;
         }
-        
-        float distance;
-        if (new Plane(Vector3.forward, Vector3.zero).Raycast(ray, out distance))
+
+        if (new Plane(Vector3.forward, Vector3.zero).Raycast(ray, out var distance))
         {
             return ray.GetPoint(distance);
         }
