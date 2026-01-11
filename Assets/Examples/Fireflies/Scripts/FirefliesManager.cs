@@ -1,13 +1,15 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using UnityEditor;
 using UnityEngine;
 using Random = UnityEngine.Random;
 
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
+
 public class FirefliesManager : MonoBehaviour
 {
-    public const float RADIUS = 0.8f;
     public const float ACCELERATION = 0.5f;
     public const float ENERGY_INTERACTION = 0.01f;
     public const float COLOR_DECRESE_OVER_TIME = 0.05f;
@@ -18,6 +20,7 @@ public class FirefliesManager : MonoBehaviour
     [SerializeField] private int _nbFirefly;
     [SerializeField] private Vector2 _spawnAreaSize;
     [SerializeField] private int _maxNeighbors;
+    [SerializeField] private float _firefliesRadius = 0.8f;
     
     [Header("Space partitioning")]
     [SerializeField] private bool _useSpacePartitioning;
@@ -162,7 +165,7 @@ public class FirefliesManager : MonoBehaviour
                 int neighborIndex = _potentialsNeighbors[j];
                 if (neighborIndex == i) continue; 
                 
-                if (Vector3.Distance(pos, _positions[neighborIndex]) <= RADIUS)
+                if (Vector3.Distance(pos, _positions[neighborIndex]) <= _firefliesRadius)
                 {
                     _neighborsIndex[i * _maxNeighbors + _neighborsCount[i]++] = neighborIndex;
                 }
@@ -269,6 +272,8 @@ public class FirefliesManager : MonoBehaviour
         return _gridCellCountX * _gridCellCountY;
     }
     
+    #if UNITY_EDITOR
+    
     private void OnDrawGizmos()
     {
         if (!Application.isPlaying) return;
@@ -321,4 +326,5 @@ public class FirefliesManager : MonoBehaviour
 
         return Vector3.zero;
     }
+    #endif
 }
