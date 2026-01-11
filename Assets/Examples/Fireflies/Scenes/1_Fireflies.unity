@@ -149,10 +149,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _prefabFirefly: {fileID: 3751060217795277434, guid: 3268d3a9e4bbda240b1278184d0dd5a9, type: 3}
-  _nbFirefly: 950
-  _spawnAreaSize: {x: 18, y: 10}
-  _maxNeighbors: 50
+  _nbFirefly: 3500
+  _spawnAreaSize: {x: 20, y: 10}
+  _maxNeighbors: 60
   _useSpacePartitioning: 0
+  _gridSize: 1.2
 --- !u!4 &209465485
 Transform:
   m_ObjectHideFlags: 0

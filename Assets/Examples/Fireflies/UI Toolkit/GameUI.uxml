@@ -1,9 +1,6 @@
 <ui:UXML xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" xsi="http://www.w3.org/2001/XMLSchema-instance" engine="UnityEngine.UIElements" editor="UnityEditor.UIElements" noNamespaceSchemaLocation="../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <ui:VisualElement name="FPSVisualElement" style="flex-grow: 0; flex-direction: row;">
-        <ui:Label tabindex="-1" text="FPS :" parse-escape-sequences="true" display-tooltip-when-elided="true" name="FPSLabel" style="width: 39px; color: rgb(255, 255, 255); margin-left: 4px;" />
-        <ui:Label tabindex="-1" text="Label" parse-escape-sequences="true" display-tooltip-when-elided="true" name="FPSValue" style="color: rgb(255, 255, 255);" />
-    </ui:VisualElement>
-    <ui:VisualElement name="FireflyCounterVisualElement" style="flex-grow: 0; flex-direction: row;">
-        <ui:TextField picking-mode="Ignore" label="Firefly Counter" value="filler text" name="FireflyCounterTextField" style="color: rgb(255, 255, 255); -unity-background-image-tint-color: rgb(255, 255, 255);" />
+        <ui:Label tabindex="-1" text="FPS :" parse-escape-sequences="true" display-tooltip-when-elided="true" name="FPSLabel" style="width: 39px; color: rgb(255, 255, 255); margin-left: 4px;"/>
+        <ui:Label tabindex="-1" text="Label" parse-escape-sequences="true" display-tooltip-when-elided="true" name="FPSValue" style="color: rgb(255, 255, 255);"/>
     </ui:VisualElement>
 </ui:UXML>

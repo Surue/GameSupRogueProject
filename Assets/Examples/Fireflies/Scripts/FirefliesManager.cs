@@ -7,7 +7,7 @@ using Random = UnityEngine.Random;
 
 public class FirefliesManager : MonoBehaviour
 {
-    public const float RADIUS = 1.5f;
+    public const float RADIUS = 0.8f;
     public const float ACCELERATION = 0.5f;
     public const float ENERGY_INTERACTION = 0.01f;
     public const float COLOR_DECRESE_OVER_TIME = 0.05f;
@@ -21,6 +21,15 @@ public class FirefliesManager : MonoBehaviour
     
     [Header("Space partitioning")]
     [SerializeField] private bool _useSpacePartitioning;
+    [SerializeField] private float _gridSize = 2;
+    
+    private int[] _grid;
+    private int[] _gridFireflyCount;
+    private int[] _potentialsNeighbors;
+    private int[] _fireflyToGridCoord;
+    private int _potentialsNeighborCount;
+    private int _gridCellCountX;
+    private int _gridCellCountY;
     
     private List<Transform> _instantiatedFireflies = new();
     private List<SpriteRenderer> _sprites = new();
@@ -29,7 +38,7 @@ public class FirefliesManager : MonoBehaviour
     private Vector2[] _velocities;
     private float[] _energies;
     private float[] _colorLerpValues;
-    private bool[] _isEmittingLights ;
+    private bool[] _isEmittingLights;
     
     private int[] _neighborsIndex;
     private int[] _neighborsCount;
@@ -48,6 +57,14 @@ public class FirefliesManager : MonoBehaviour
         _energies = new float[_nbFirefly];
         _velocities = new Vector2[_nbFirefly];
         _positions = new Vector3[_nbFirefly];
+        _potentialsNeighbors = new int[_nbFirefly];
+        _fireflyToGridCoord = new int[_nbFirefly];
+        
+        _gridCellCountX = GridCellCountX();
+        _gridCellCountY = GridCellCountY();
+        
+        _grid = new int[_nbFirefly * TotalCellCount()];
+        _gridFireflyCount = new int[TotalCellCount()];
 
         _noLightColor = Color.gray;
         _lightColor = Color.yellow;
@@ -68,6 +85,7 @@ public class FirefliesManager : MonoBehaviour
             _colorLerpValues[i] = 0;
             _sprites.Add(instance.GetComponentInChildren<SpriteRenderer>());
             _sprites[^1].color = Color.Lerp(_noLightColor, _lightColor, 0);
+            _fireflyToGridCoord[i] = 0;
         }
     }
 
@@ -77,61 +95,73 @@ public class FirefliesManager : MonoBehaviour
         {
             return;
         }
+
+        for (int i = 0; i < TotalCellCount(); i++)
+        {
+            _gridFireflyCount[i] = 0;
+        }
         
         // Position
         float dt = Time.deltaTime;
         const float friction = 0.999f;
         for (int i = 0; i < _nbFirefly; i++)
         {
+            _neighborsCount[i] = 0;
+            
             Vector2 vel = _velocities[i];
             Vector3 pos = _positions[i];
             Vector2 acc = new Vector2(Random.Range(-ACCELERATION, ACCELERATION), Random.Range(-ACCELERATION, ACCELERATION));
             vel = friction * vel + acc * dt;
             pos += (Vector3)vel * dt;
 
-            if (pos.x < -9)
+            if (pos.x < -_spawnAreaSize.x * 0.5f)
             {
                 vel.x *= -0.7f;
-                pos = new Vector3(-9, pos.y);
+                pos = new Vector3(-_spawnAreaSize.x * 0.5f, pos.y);
             }
-            else if (pos.x > 9)
+            else if (pos.x > _spawnAreaSize.x * 0.5f)
             {
                 vel.x *= -0.7f;
-                pos = new Vector3(9, pos.y);
+                pos = new Vector3(_spawnAreaSize.x * 0.5f, pos.y);
             }
 
-            if (pos.y < -5)
+            if (pos.y < -_spawnAreaSize.y * 0.5f)
             {
                 vel.y *= -0.7f;
-                pos = new Vector3(pos.x, -5);
+                pos = new Vector3(pos.x, -_spawnAreaSize.y * 0.5f);
             }
-            else if (pos.y > 5)
+            else if (pos.y > _spawnAreaSize.y * 0.5f)
             {
                 vel.y *= -0.7f;
-                pos = new Vector3(pos.x, 5);
+                pos = new Vector3(pos.x, _spawnAreaSize.y * 0.5f);
             }
 
             _instantiatedFireflies[i].position = pos;
             _positions[i] = pos;
             _velocities[i] = vel;
-        }
+            
+            // Grid
 
-        for (int i = 0; i < _nbFirefly; i++)
-        {
-            _neighborsCount[i] = 0;
+            int gridIndex = GetGridIndexFromPosition(pos);
+            _grid[gridIndex * _nbFirefly + _gridFireflyCount[gridIndex]++] = i;
+            _fireflyToGridCoord[i] = gridIndex;
         }
         
-        // Contact
+        // Contact 
         for (int i = 0; i < _nbFirefly; i++)
         {
             Vector3 pos = _positions[i];
 
-            for (int j = i + 1; j < _nbFirefly; j++)
+            GetPotentialNeighbors(_fireflyToGridCoord[i]);
+
+            for(int j = 0; j < _potentialsNeighborCount; j++) 
             {
-                if (Vector3.Distance(pos, _positions[j]) <= RADIUS)
+                int neighborIndex = _potentialsNeighbors[j];
+                if (neighborIndex == i) continue; 
+                
+                if (Vector3.Distance(pos, _positions[neighborIndex]) <= RADIUS)
                 {
-                    _neighborsIndex[i * _maxNeighbors + _neighborsCount[i]++] = j;
-                    _neighborsIndex[j * _maxNeighbors + _neighborsCount[j]++] = i;
+                    _neighborsIndex[i * _maxNeighbors + _neighborsCount[i]++] = neighborIndex;
                 }
             }
         }
@@ -146,8 +176,8 @@ public class FirefliesManager : MonoBehaviour
             for (int j = 0; j < neighborCount; j++)
             {
                 int neighborIndex = _neighborsIndex[i * _maxNeighbors + j];
-                if (Math.Abs(_colorLerpValues[neighborIndex] - 1) < 0.01f)
-                {
+                if (Math.Abs(_colorLerpValues[neighborIndex] - 1) < Mathf.Epsilon) 
+                { 
                     sum++;
                 }
             }
@@ -182,6 +212,71 @@ public class FirefliesManager : MonoBehaviour
         }
     }
     
+    private int GetGridIndexFromPosition(Vector3 position)
+    {
+        float offsetX = position.x + (_spawnAreaSize.x / 2f);
+        float offsetY = position.y + (_spawnAreaSize.y / 2f); 
+        
+        int nx = _gridCellCountX;
+        int ny = _gridCellCountY;
+        
+        int x = Mathf.FloorToInt(offsetX / _gridSize);
+        int y = Mathf.FloorToInt(offsetY / _gridSize);
+        
+        x = Mathf.Clamp(x, 0, nx - 1);
+        y = Mathf.Clamp(y, 0, ny - 1);
+
+        return x + y * _gridCellCountX;
+    }
+
+    private Vector2Int GetGridCoordFromIndex(int gridIndex)
+    {
+        return new Vector2Int(gridIndex % _gridCellCountX, gridIndex / _gridCellCountX);
+    }
+    
+    private void GetPotentialNeighbors(int gridIndex)
+    {
+        Vector2Int centerCoord = GetGridCoordFromIndex(gridIndex);
+        int centerCoordX = centerCoord.x;
+        int centerCoordY = centerCoord.y;
+        _potentialsNeighborCount = 0;
+        
+        for (int i = -1; i <= 1; i++)
+        {
+            for (int j = -1; j <= 1; j++)
+            { 
+                int coordX = centerCoordX + i;
+                int coordY = centerCoordY + j;
+                int index =  coordX + coordY * _gridCellCountX;
+
+                if (coordX >= 0 && coordX < _gridCellCountX && coordY >= 0 && coordY < _gridCellCountY)
+                {
+                    for (int k = 0; k < _gridFireflyCount[index]; k++)
+                    {
+                        _potentialsNeighbors[_potentialsNeighborCount++] = _grid[_nbFirefly * index + k];
+                    }
+                }
+            }
+        }
+    }
+    
+    private int GridCellCountX()
+    {
+        float areaX = _spawnAreaSize.x;
+        return Mathf.CeilToInt(areaX / _gridSize);
+    }
+    
+    private int GridCellCountY()
+    {
+        float areaY = _spawnAreaSize.y; 
+        return Mathf.CeilToInt(areaY / _gridSize);
+    }
+
+    private int TotalCellCount()
+    {
+        return _gridCellCountX * _gridCellCountY;
+    }
+    
     private void OnDrawGizmos()
     {
         if (!Application.isPlaying) return;
@@ -200,5 +295,30 @@ public class FirefliesManager : MonoBehaviour
                 }
             }
         }
+
+        var gridIndex = GetGridIndexFromPosition(GetMouseWorldPosition());
+
+        for (int i = 0; i < _gridFireflyCount[gridIndex]; i++)
+        {
+            Gizmos.DrawWireCube(_positions[_grid[gridIndex * _nbFirefly + i]], Vector3.one * 0.2f);
+        }
+    }
+    
+    public Vector3 GetMouseWorldPosition()
+    {
+        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+        
+        if (Physics.Raycast(ray, out RaycastHit hit, 1000f))
+        {
+            return hit.point;
+        }
+        
+        float distance;
+        if (new Plane(Vector3.forward, Vector3.zero).Raycast(ray, out distance))
+        {
+            return ray.GetPoint(distance);
+        }
+
+        return Vector3.zero;
     }
 }
