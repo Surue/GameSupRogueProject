@@ -31,8 +31,8 @@ public class FirefliesManager : MonoBehaviour
     private int _gridCellCountX;
     private int _gridCellCountY;
     
-    private List<Transform> _instantiatedFireflies = new();
-    private List<SpriteRenderer> _sprites = new();
+    private Transform[] _instantiatedFireflies;
+    private SpriteRenderer[] _sprites;
 
     private Vector3[] _positions;
     private Vector2[] _velocities;
@@ -48,7 +48,8 @@ public class FirefliesManager : MonoBehaviour
     
     private void Start()
     {
-        _instantiatedFireflies = new List<Transform>();
+        _instantiatedFireflies = new Transform[_nbFirefly];
+        _sprites = new SpriteRenderer[_nbFirefly];
         
         _neighborsCount = new int[_nbFirefly];
         _neighborsIndex = new int[_nbFirefly * _maxNeighbors];
@@ -76,15 +77,17 @@ public class FirefliesManager : MonoBehaviour
                 new Vector3(Random.Range(-_spawnAreaSize.x * 0.5f, _spawnAreaSize.x * 0.5f), Random.Range(-_spawnAreaSize.y * 0.5f, _spawnAreaSize.y * 0.5f), 0), 
                 Quaternion.identity);
             
-            _instantiatedFireflies.Add(instance.transform);
-            _neighborsCount[i] = 0;
+            _instantiatedFireflies[i] = instance.transform;
             _positions[i] = instance.transform.position;
+            
+            _sprites[i] = instance.GetComponentInChildren<SpriteRenderer>();
+            _sprites[i].color = Color.Lerp(_noLightColor, _lightColor, 0);
+            
+            _neighborsCount[i] = 0;
             _velocities[i] = Vector2.zero;
             _energies[i] = Random.Range(0.0f, 1.0f);
             _isEmittingLights[i] = false;
             _colorLerpValues[i] = 0;
-            _sprites.Add(instance.GetComponentInChildren<SpriteRenderer>());
-            _sprites[^1].color = Color.Lerp(_noLightColor, _lightColor, 0);
             _fireflyToGridCoord[i] = 0;
         }
     }
@@ -166,47 +169,39 @@ public class FirefliesManager : MonoBehaviour
             }
         }
         
-        // Energy
         for (int i = 0; i < _nbFirefly; i++)
         {
-            if (_isEmittingLights[i]) continue;
-            
-            int sum = 0;
-            int neighborCount = _neighborsCount[i];
-            for (int j = 0; j < neighborCount; j++)
+            // Energy
+            if (!_isEmittingLights[i])
             {
-                int neighborIndex = _neighborsIndex[i * _maxNeighbors + j];
-                if (Math.Abs(_colorLerpValues[neighborIndex] - 1) < Mathf.Epsilon) 
-                { 
-                    sum++;
-                }
-            }
-
-            _energies[i] += sum * ENERGY_INTERACTION;
-        }
-        
-        // Lights
-        for (int i = 0; i < _nbFirefly; i++)
-        {
-            if (_isEmittingLights[i])
-            {
-                _sprites[i].color = Color.Lerp(_noLightColor, _lightColor, _colorLerpValues[i]);
-                _colorLerpValues[i] -= COLOR_DECRESE_OVER_TIME;
-
-                if (_colorLerpValues[i] <= 0)
+                int sum = 0;
+                int neighborCount = _neighborsCount[i];
+                for (int j = 0; j < neighborCount; j++)
                 {
-                    _isEmittingLights[i] = false;
+                    int neighborIndex = _neighborsIndex[i * _maxNeighbors + j];
+                    if (Math.Abs(_colorLerpValues[neighborIndex] - 1.0f) < Mathf.Epsilon)
+                    {
+                        sum++;
+                    }
+                }
+
+                _energies[i] += sum * ENERGY_INTERACTION + COLOR_INCRESE_OVER_TIME;
+
+                if (_energies[i] > 1.0f)
+                {
+                    _energies[i] = 0.0f;
+                    _isEmittingLights[i] = true;
+                    _colorLerpValues[i] = 1.0f;
                 }
             }
             else
             {
-                _energies[i] += COLOR_INCRESE_OVER_TIME;
+                _sprites[i].color = Color.Lerp(_noLightColor, _lightColor, _colorLerpValues[i]);
+                _colorLerpValues[i] -= COLOR_DECRESE_OVER_TIME;
 
-                if (_energies[i] > 1)
+                if (_colorLerpValues[i] <= 0.0f)
                 {
-                    _energies[i] = 0;
-                    _isEmittingLights[i] = true;
-                    _colorLerpValues[i] = 1;
+                    _isEmittingLights[i] = false;
                 }
             }
         }
@@ -217,14 +212,11 @@ public class FirefliesManager : MonoBehaviour
         float offsetX = position.x + (_spawnAreaSize.x / 2f);
         float offsetY = position.y + (_spawnAreaSize.y / 2f); 
         
-        int nx = _gridCellCountX;
-        int ny = _gridCellCountY;
-        
         int x = Mathf.FloorToInt(offsetX / _gridSize);
         int y = Mathf.FloorToInt(offsetY / _gridSize);
         
-        x = Mathf.Clamp(x, 0, nx - 1);
-        y = Mathf.Clamp(y, 0, ny - 1);
+        x = Mathf.Clamp(x, 0, _gridCellCountX - 1);
+        y = Mathf.Clamp(y, 0, _gridCellCountY - 1);
 
         return x + y * _gridCellCountX;
     }
