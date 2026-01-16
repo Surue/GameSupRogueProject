@@ -7,7 +7,7 @@ using UnityEditor;
 public class AdvancedBinarySpacePartitionning : MonoBehaviour
 {
     #region Nested Types
-    private struct Room
+    public struct Room
     {
         public Vector2 center;
         public Vector2 extends;
@@ -29,11 +29,24 @@ public class AdvancedBinarySpacePartitionning : MonoBehaviour
     [Range(0, 1)] [SerializeField] private float _probabilityToCut;
     [Range(0, 1)] [SerializeField] private float _probabilityToByXOrByY;
     
+    [SerializeField] private bool _autoStart = true;
+    
     private Room _rootRoom;
+    public Room Root => _rootRoom;
+
+    private bool _debugDrawCorridors = false;
     #endregion
     
     #region Methods
     private void Start()
+    {
+        if (_autoStart)
+        {
+            Init();
+        }
+    }
+
+    public void Init(bool debugDrawCorridors = false)
     {
         Clear();
         Generate();
@@ -190,6 +203,20 @@ public class AdvancedBinarySpacePartitionning : MonoBehaviour
         SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.children[0].center, room.children[0].extends, Color.red));
         SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.children[1].center, room.children[1].extends, Color.red));
         SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(room.center, room.extends, Color.blue));
+        
+        Vector2 start = room.children[0].center;
+        Vector2 end = room.children[1].center;
+        Vector2 center = (end + start) / 2;
+        Vector2 extends = Vector2.one;
+        if (end.x - start.x != 0)
+        {
+            extends.x = Mathf.Max(end.x, start.x) - Mathf.Min(start.x, end.x);
+        }
+        else
+        {
+            extends.y = Mathf.Max(end.y, start.y) - Mathf.Min(start.y, end.y);
+        }
+        SnapshotRecorder.Instance.AddSnapshotElement(new SnapshotGizmoWireCube(center, extends, Color.green));
     }
 
     private void AddExistingRoomToSnapshotAndAllChildren(Room room)
