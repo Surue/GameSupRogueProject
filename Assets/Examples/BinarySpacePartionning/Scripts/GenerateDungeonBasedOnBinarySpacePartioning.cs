@@ -7,7 +7,7 @@ public class GenerateDungeonBasedOnBinarySpacePartioning : MonoBehaviour
     [SerializeField] private AdvancedBinarySpacePartitionning _bspLogic;
     
     [Header("Prefabs")]
-    [SerializeField] private List<GameObject> _roomPrefabs;
+    [SerializeField] private List<RoomForDungeons> _roomPrefabs;
     [SerializeField] private List<GameObject> _corridorPrefabs;
 
     [Header("Settings")]
@@ -44,7 +44,17 @@ public class GenerateDungeonBasedOnBinarySpacePartioning : MonoBehaviour
     {
         if (_roomPrefabs.Count == 0) return;
 
-        GameObject prefab = _roomPrefabs[Random.Range(0, _roomPrefabs.Count)];
+
+        // Select prefab 
+        List<GameObject> prefabs = new List<GameObject>();
+        foreach (RoomForDungeons roomForDungeons in _roomPrefabs)
+        {
+            if (roomForDungeons.RoomSize.x <= room.extends.x &&  roomForDungeons.RoomSize.y <= room.extends.y)
+            {
+                prefabs.Add(roomForDungeons.Prefab);
+            }
+        }
+        GameObject prefab = prefabs[Random.Range(0, prefabs.Count)];
         GameObject instance = Instantiate(prefab, new Vector3(room.center.x, room.center.y, 0), Quaternion.identity, _container);
     }
 

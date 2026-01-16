@@ -310,8 +310,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::GenerateDungeonBasedOnBinarySpacePartioning
   _bspLogic: {fileID: 1939934200}
   _roomPrefabs:
-  - {fileID: 8179471140097266288, guid: 4b50d2c8b71f2e3438fd0d1cd6ba06e4, type: 3}
-  - {fileID: 1958634302920787598, guid: 613d33073979e4142ae3a547fff00197, type: 3}
+  - {fileID: 11400000, guid: 9afc1bf3ad266814cbd013f919441ea3, type: 2}
+  - {fileID: 11400000, guid: beb3bb2d640c77748a0c6d2025c232cf, type: 2}
   _corridorPrefabs:
   - {fileID: 5272827888107210682, guid: 83ccb6c6599c14a4f9b4c8459fd9c870, type: 3}
   _container: {fileID: 1109499674}
