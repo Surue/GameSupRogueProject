@@ -9,7 +9,6 @@ using UnityEngine.UIElements;
 public class UIController : MonoBehaviour
 {
     [SerializeField] private UIDocument _UIDocument;
-    [SerializeField] private FirefliesManager _firefliesManager;
     
     // FPS Counter
     private Label _fpsValueLabel;
