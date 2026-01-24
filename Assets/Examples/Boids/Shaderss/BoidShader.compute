@@ -1,0 +1,161 @@
+#pragma kernel CSMain
+#pragma kernel CSClearGrid
+#pragma kernel CSUpdateGrid
+
+struct Boid {
+    float2 position;
+    float2 velocity;
+    float2 direction;
+};
+
+RWStructuredBuffer<Boid> boids;
+RWStructuredBuffer<int> gridHeads; 
+RWStructuredBuffer<int> gridNext;  
+
+float deltaTime;
+float speed;
+float neighborRadius;
+float avoidRadius;
+float2 simSize;
+float fovThreshold;
+float wCoh, wAli, wSep;
+int gridCols, gridRows;
+float2 bottomLeft;
+uint boidCount;
+
+inline float2 GetToroidalOffset(float2 target, float2 current) {
+    float2 diff = target - current;
+    float2 halfSize = simSize * 0.5;
+    
+    if (diff.x > halfSize.x) diff.x -= simSize.x;
+    else if (diff.x < -halfSize.x) diff.x += simSize.x;
+    
+    if (diff.y > halfSize.y) diff.y -= simSize.y;
+    else if (diff.y < -halfSize.y) diff.y += simSize.y;
+    
+    return diff;
+}
+
+[numthreads(64, 1, 1)]
+void CSClearGrid (uint3 id : SV_DispatchThreadID) {
+    if (id.x >= (uint)(gridCols * gridRows)) return;
+    gridHeads[id.x] = -1;
+}
+
+[numthreads(64, 1, 1)]
+void CSUpdateGrid (uint3 id : SV_DispatchThreadID) {
+    if (id.x >= boidCount) return;
+
+    float2 pos = boids[id.x].position;
+    
+    int gx = floor((pos.x - bottomLeft.x) / neighborRadius);
+    int gy = floor((pos.y - bottomLeft.y) / neighborRadius);
+    
+    gx = clamp(gx, 0, gridCols - 1);
+    gy = clamp(gy, 0, gridRows - 1);
+    
+    int cellIdx = gx + gy * gridCols;
+    
+    int originalHead;
+    InterlockedExchange(gridHeads[cellIdx], (int)id.x, originalHead);
+    gridNext[id.x] = originalHead;
+}
+
+[numthreads(64, 1, 1)]
+void CSMain (uint3 id : SV_DispatchThreadID) {
+    if (id.x >= boidCount) return;
+
+    Boid b = boids[id.x];
+    
+    float2 cohesionSum = float2(0, 0);
+    float2 alignmentSum = float2(0, 0);
+    float2 separationSum = float2(0, 0);
+    
+    int count = 0;
+    int avoidCount = 0;
+
+    float neighborRadiusSq = neighborRadius * neighborRadius;
+
+    int gx = (int)((b.position.x - bottomLeft.x) / neighborRadius);
+    int gy = (int)((b.position.y - bottomLeft.y) / neighborRadius);
+
+    for (int y = gy - 1; y <= gy + 1; y++) {
+        if (y < 0 || y >= gridRows) continue; 
+
+        int yOffset = y * gridCols;
+
+        for (int x = gx - 1; x <= gx + 1; x++) {
+             if (x < 0 || x >= gridCols) continue;
+
+            int neighborIdx = gridHeads[x + yOffset];
+            
+            int safety = 0;
+            while (neighborIdx != -1 && safety < 1000) {
+                safety++;
+                
+                if ((uint)neighborIdx != id.x) {
+                    Boid neighbor = boids[neighborIdx];
+                    
+                    float2 offset = GetToroidalOffset(neighbor.position, b.position);
+                    float dSq = dot(offset, offset);
+
+                    if (dSq < neighborRadiusSq && dSq > 0.00001) {
+                        float invDist = rsqrt(dSq); 
+                        float2 dirToNeighbor = offset * invDist;
+                        
+                        if (dot(b.direction, dirToNeighbor) >= fovThreshold) {
+                            count++;
+                            alignmentSum += neighbor.direction;
+                            cohesionSum += offset;
+
+                            float dist = dSq * invDist;
+
+                            if (dist < avoidRadius) {
+                                avoidCount++;
+                                float s = 1.0 - (dist / avoidRadius);
+                                separationSum -= dirToNeighbor * (s * s);
+                            }
+                        }
+                    }
+                }
+                neighborIdx = gridNext[neighborIdx];
+            }
+        }
+    }
+
+    float2 influence = float2(0, 0);
+    
+    if (count > 0) {
+        float invCount = 1.0 / (float)count;
+        influence += (cohesionSum * invCount) * wCoh;
+        influence += (alignmentSum * invCount) * wAli;
+    } else {
+        influence += b.direction * 0.1;
+    }
+
+    if (avoidCount > 0) {
+        influence += (separationSum / (float)avoidCount) * wSep;
+    }
+
+    b.velocity += influence * deltaTime;
+    
+    float vSq = dot(b.velocity, b.velocity);
+    if (vSq > speed * speed) {
+        b.velocity = normalize(b.velocity) * speed;
+    }
+
+    b.position += b.velocity * deltaTime;
+
+    float2 halfSize = simSize * 0.5;
+    if (b.position.x > halfSize.x) b.position.x -= simSize.x;
+    else if (b.position.x < -halfSize.x) b.position.x += simSize.x;
+    
+    if (b.position.y > halfSize.y) b.position.y -= simSize.y;
+    else if (b.position.y < -halfSize.y) b.position.y += simSize.y;
+    
+    if (dot(b.velocity, b.velocity) > 0.0001) {
+        b.direction = normalize(b.velocity);
+    }
+
+    boids[id.x] = b;
+}
