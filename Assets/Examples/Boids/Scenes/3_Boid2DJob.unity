@@ -386,7 +386,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 568448732}
-  - component: {fileID: 568448733}
+  - component: {fileID: 568448734}
   m_Layer: 0
   m_Name: BoidManager
   m_TagString: Untagged
@@ -409,7 +409,7 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &568448733
+--- !u!114 &568448734
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -418,22 +418,20 @@ MonoBehaviour:
   m_GameObject: {fileID: 568448730}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 081b2daf672ba8d49b06cc8750c14ad6, type: 3}
+  m_Script: {fileID: 11500000, guid: 861c17790faf77e4cbd39bf58a682464, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::BoidManager
+  m_EditorClassIdentifier: Assembly-CSharp::BoidManagerJob
   _boidPrefab: {fileID: 5048078582261165814, guid: d6273c49c763e814e95c3f1a13ca4b03, type: 3}
-  _boidCount: 2000
-  _spawnRadius: 50
+  _boidCount: 5000
   _speed: 5
   _neighborRadius: 10
   _avoidRadius: 2
-  _movementRadius: 100
-  _maxNeighborCount: 500
+  _maxNeighborCount: 100
+  _simulationSize: {x: 350, y: 200}
   _cohesionWeight: 0.1
-  _alligmentWeight: 1
+  _alligmentWeight: 2
   _separationWeight: 50
   _fovAngle: 270
-  _simulationSize: {x: 350, y: 200}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

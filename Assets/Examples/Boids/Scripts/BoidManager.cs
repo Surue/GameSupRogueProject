@@ -120,7 +120,7 @@ public class BoidManager : MonoBehaviour
                     {
                         if (neighborIndex != i)
                         {
-                            // Inlining du calcul torique
+                            // Inlining tor postion
                             float dx = _positions[neighborIndex].x - boidPos.x;
                             if (dx > halfWidth) dx -= _simulationSize.x;
                             else if (dx < -halfWidth) dx += _simulationSize.x;
@@ -134,7 +134,6 @@ public class BoidManager : MonoBehaviour
                             if (dSq < neighborRadiusSq)
                             {
                                 float d = Mathf.Sqrt(dSq);
-                                // Normalisation manuelle plus rapide pour le DOT
                                 float invD = 1.0f / (d + 0.0001f);
                                 float dot = (boidDir.x * dx * invD) + (boidDir.y * dy * invD);
 
