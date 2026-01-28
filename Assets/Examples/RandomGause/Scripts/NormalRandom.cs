@@ -5,11 +5,16 @@ using Random = UnityEngine.Random;
 
 public class NormalRandom : MonoBehaviour
 {
+    [Header("Settings")]
     [SerializeField] private float _size;
     [SerializeField] private int _nbPoint;
     [SerializeField] private float _mean;
     [SerializeField] private float _dis;
 
+    [Header("Debug")]
+    [SerializeField] private bool _debugRandom;
+    [SerializeField] private bool _debugNormalRandom;
+    
     private List<Vector2> _points;
     private List<Vector2> _points2;
 
@@ -20,8 +25,9 @@ public class NormalRandom : MonoBehaviour
     {
         _points = new List<Vector2>();
 
-        for (int i = 0; i < _nbPoint; i++) {
-            Vector2 p = new Vector2(Random.Range(0, _size), Random.Range(0, _size));
+        for (int i = 0; i < _nbPoint; i++)
+        {
+            Vector2 p = Random.insideUnitCircle * Random.Range(0, _size); 
             _points.Add(p);
         }
 
@@ -39,8 +45,9 @@ public class NormalRandom : MonoBehaviour
     {
         _points = new List<Vector2>();
 
-        for (int i = 0; i < _nbPoint; i++) {
-            Vector2 p = new Vector2(Random.Range(0, _size), Random.Range(0, _size));
+        for (int i = 0; i < _nbPoint; i++)
+        {
+            Vector2 p = Random.insideUnitCircle * Random.Range(0, _size);
             _points.Add(p);
         }
 
@@ -68,13 +75,23 @@ public class NormalRandom : MonoBehaviour
     {
         if (!_isRunning) return;
 
-        foreach (Vector2 v in _points) {
-            Gizmos.DrawWireSphere(v, 0.1f);
+        if (_debugRandom)
+        {
+            foreach (Vector2 v in _points)
+            {
+                Gizmos.DrawWireSphere(v, 0.1f);
+            }
         }
 
-        Gizmos.color = Color.red;
-        foreach(Vector2 v in _points2) {
-            Gizmos.DrawWireSphere(v, 0.1f);
+        if (_debugNormalRandom)
+        {
+            Gizmos.color = Color.red;
+            foreach (Vector2 v in _points2)
+            {
+                Gizmos.DrawWireSphere(v, 0.1f);
+            }
         }
+
+        Gizmos.DrawWireSphere(Vector2.zero, _size);
     }
 }
