@@ -1,10 +1,12 @@
 using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 
 public class Room
 {
     public Vector2 Size;
     public Vector2 Center;
+    public GameObject InstanciatedChunk;
 }
 
 public class BSP : MonoBehaviour
@@ -21,6 +23,9 @@ public class BSP : MonoBehaviour
     [SerializeField] private List<GameObject> _chunkPrefab10x5;
     [SerializeField] private List<GameObject> _chunkPrefab10x10;
     [SerializeField] private List<GameObject> _chunkPrefab20x20;
+    
+    // Player
+    [SerializeField] private Player _player;
     
     // Rooms 
     private List<Room> _rooms; // Declaration
@@ -41,25 +46,37 @@ public class BSP : MonoBehaviour
         _cuttableRooms = new List<Room>();
         _cuttableRooms.Add(rootRoom);
         
-        // Algo
+        // Algo Binary Space partitioning
         while (_cuttableRooms.Count > 0)
         {
-            // Tant que je peux couper une room en 2, je le fais
-            // Si je coupe en 2 je crée des nouvelles rooms
+            // Get room to cut
             Room roomToCut = _cuttableRooms[0];
             _cuttableRooms.RemoveAt(0);
 
-            if (roomToCut.Size.x / 2.0f <= _minSizeX || roomToCut.Size.y / 2.0f <= _minSizeY) // || is "or"
+            // Check can cut
+            bool canCutVertically = roomToCut.Size.x / 2.0f >= _minSizeX;
+            bool canCutHorizontally = roomToCut.Size.y / 2.0f >= _minSizeY;
+            
+            // Stop cutting
+            if (!canCutVertically && !canCutHorizontally)
             {
                 _rooms.Add(roomToCut);
                 continue;
             }
-            
-            // If code reach this point => Cut the room
-            bool doCutVertical; // Declaration
-            int random =  Random.Range(0, 2); // Can be equal 0 or 1
-            doCutVertical = random == 0; // If random == 0 => true, or else
 
+            // Select vertical or horizontal
+            bool doCutVertical; 
+            if (canCutHorizontally && canCutVertically)
+            {
+                int random =  Random.Range(0, 2); // Can be equal 0 or 1
+                doCutVertical = random == 0; // If random == 0 => true, or else
+            }
+            else
+            {
+                doCutVertical = canCutVertically;
+            }
+            
+            // Cut the room
             if (doCutVertical)
             {
                 // Cut Vertical
@@ -139,8 +156,78 @@ public class BSP : MonoBehaviour
             
             GameObject chunkPrefab = chunksPossibleToInstantiate[Random.Range(0, chunksPossibleToInstantiate.Count)];
             GameObject chunkInstance = Instantiate(chunkPrefab, new Vector3(room.Center.x, 0, room.Center.y), Quaternion.identity);
+            room.InstanciatedChunk = chunkInstance;
+        }
+        
+        // Connect teleporters
+        foreach (Room room in _rooms)
+        {
+            // 2. Chercher les 3 plus proches
+            List<Room> neighborRooms = new List<Room>();
+            foreach (Room otherRoom in _rooms)
+            {
+                // Ignore self
+                if (otherRoom == room) continue;
+
+                // Distance to otherRoom
+                float distance = Vector2.Distance(room.Center, otherRoom.Center);
+
+                if (neighborRooms.Count < 3)
+                {
+                    neighborRooms.Add(otherRoom);  
+                }
+                else
+                {
+                    for (int i = 0; i < 3; i++)
+                    {
+                        Room neighborRoom = neighborRooms[i];
+                        // Check if closer than existing neighbor room
+                        if (distance < Vector2.Distance(room.Center, neighborRoom.Center))
+                        {
+                            neighborRooms.Remove(neighborRoom);
+                            neighborRooms.Add(otherRoom);
+                            break;
+                        }
+                    }
+                }
+            }
+            
+            // Connect teleporters
+            List<Teleporter> myTeleporters = new List<Teleporter>();
+            myTeleporters = room.InstanciatedChunk.GetComponentsInChildren<Teleporter>().ToList();
+
+            foreach (Room neighborRoom in neighborRooms)
+            {
+                List<Teleporter> neighborTeleporters = new List<Teleporter>();
+                neighborTeleporters = neighborRoom.InstanciatedChunk.GetComponentsInChildren<Teleporter>().ToList();
+
+                bool connected = false;
+                foreach (Teleporter neighborTeleporter in neighborTeleporters)
+                {
+                    if (neighborTeleporter.GetDestinationTeleporter() == null)
+                    {
+                        foreach (Teleporter myTeleporter in myTeleporters)
+                        {
+                            if (myTeleporter.GetDestinationTeleporter() == null)
+                            {
+                                myTeleporter.SetDestinationTeleporter(neighborTeleporter);
+                                neighborTeleporter.SetDestinationTeleporter(myTeleporter);
+                                connected = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (connected)
+                    {
+                        break;
+                    }
+                }
+            }
 
         }
+        
+        _player.transform.position = new Vector3(_rooms[0].Center.x, 0, _rooms[0].Center.y);
     }
 
     void Update()

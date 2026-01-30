@@ -8,6 +8,11 @@ public class Teleporter : MonoBehaviour
     {
         return _destinationTeleporter;
     }
+
+    public void SetDestinationTeleporter(Teleporter destinationTeleporter)
+    {
+        _destinationTeleporter = destinationTeleporter;
+    }
     
     private void OnDrawGizmos()
     {
