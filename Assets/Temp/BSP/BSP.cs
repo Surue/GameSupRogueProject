@@ -16,9 +16,16 @@ public class BSP : MonoBehaviour
     [SerializeField] private float _minSizeX;
     [SerializeField] private float _minSizeY;
     
+    // Chunks
+    [SerializeField] private List<GameObject> _chunkPrefab5x5;
+    [SerializeField] private List<GameObject> _chunkPrefab10x5;
+    [SerializeField] private List<GameObject> _chunkPrefab10x10;
+    [SerializeField] private List<GameObject> _chunkPrefab20x20;
+    
     // Rooms 
     private List<Room> _rooms; // Declaration
     private List<Room> _cuttableRooms;
+    
     
     private void Start()
     {
@@ -30,7 +37,6 @@ public class BSP : MonoBehaviour
 
         // Add room to list
         _rooms = new List<Room>(); // Initialization
-        _rooms.Add(rootRoom);
         
         _cuttableRooms = new List<Room>();
         _cuttableRooms.Add(rootRoom);
@@ -45,6 +51,7 @@ public class BSP : MonoBehaviour
 
             if (roomToCut.Size.x / 2.0f <= _minSizeX || roomToCut.Size.y / 2.0f <= _minSizeY) // || is "or"
             {
+                _rooms.Add(roomToCut);
                 continue;
             }
             
@@ -65,7 +72,7 @@ public class BSP : MonoBehaviour
                 roomLeft.Size = new Vector2(newWidth, roomToCut.Size.y);
                 roomRight.Size = new Vector2(roomToCut.Size.x - newWidth, roomToCut.Size.y);
                 
-                // center
+                // Center
                 float offset = (roomToCut.Size.x / 2.0f) - (roomLeft.Size.x / 2.0f);
                 roomLeft.Center = new Vector2(roomToCut.Center.x - offset, roomToCut.Center.y);
                 
@@ -75,8 +82,6 @@ public class BSP : MonoBehaviour
                 // Add room to cuttable rooms
                 _cuttableRooms.Add(roomLeft);
                 _cuttableRooms.Add(roomRight);
-                _rooms.Add(roomLeft);
-                _rooms.Add(roomRight);
             }
             else
             {
@@ -92,17 +97,50 @@ public class BSP : MonoBehaviour
                 float offset = (roomToCut.Size.y / 2.0f) - (roomTop.Size.y / 2.0f);
                 roomTop.Center = new Vector2(roomToCut.Center.x, roomToCut.Center.y - offset);
                 
-                offset = (roomToCut.Size.y / 2.0f) - (roomBottom.Size.y / 2.0f);
+                offset = (roomToCut.Size.y / 2.0f) - (roomBottom.Size.y / 2.0f); 
                 roomBottom.Center = new Vector2(roomToCut.Center.x, roomToCut.Center.y + offset);
                 
                 // Add room to cuttable rooms
                 _cuttableRooms.Add(roomTop);
                 _cuttableRooms.Add(roomBottom);
-                _rooms.Add(roomTop);
-                _rooms.Add(roomBottom);
             }
         }
-        // Je m'arrête s'il n'y a plus de room à couper
+        
+        // Spawn chunks
+        foreach (Room room in _rooms)
+        {
+            // List all chunks possible to use
+            List<GameObject> chunksPossibleToInstantiate = new List<GameObject>();
+            if (room.Size.x >= 20 && room.Size.y >= 20)
+            {
+                // Chunks 20 x 20
+                chunksPossibleToInstantiate.AddRange(_chunkPrefab20x20);
+            }
+            
+            if (room.Size.x >= 10) 
+            {
+                if (room.Size.y >= 10)
+                {
+                    // Chunks 10 x 10
+                    chunksPossibleToInstantiate.AddRange(_chunkPrefab10x10);
+                }
+                else if (room.Size.y >= 5)
+                {
+                    // Chunks 10 x 5
+                    chunksPossibleToInstantiate.AddRange(_chunkPrefab10x5);
+                }
+            }
+            
+            if (room.Size.x >= 5 && room.Size.y >= 5)
+            {
+                // Chunks 5 x 5
+                chunksPossibleToInstantiate.AddRange(_chunkPrefab5x5);
+            }
+            
+            GameObject chunkPrefab = chunksPossibleToInstantiate[Random.Range(0, chunksPossibleToInstantiate.Count)];
+            GameObject chunkInstance = Instantiate(chunkPrefab, new Vector3(room.Center.x, 0, room.Center.y), Quaternion.identity);
+
+        }
     }
 
     void Update()
